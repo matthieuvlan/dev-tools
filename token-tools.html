@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Token Tools — Dev Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0f0ee;
+    --surface3: #e8e8e5;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --text2: #555550;
+    --text3: #999990;
+    --accent: #2563eb;
+    --accent-dim: rgba(37,99,235,0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.08);
+    --amber: #b45309;
+    --amber-dim: rgba(180,83,9,0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.08);
+    --purple: #7c3aed;
+    --radius: 8px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Shared nav ── */
+  .topnav {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 0 24px;
+    height: 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .nav-brand {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 8px;
+  }
+
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .nav-links { display: flex; gap: 2px; }
+
+  .nav-link {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text3);
+    text-decoration: none;
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    transition: color 0.15s, background 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .nav-link:hover { color: var(--text); background: var(--surface2); }
+  .nav-link.active { color: var(--text); background: var(--surface2); }
+
+  /* ── Tool tabs (JWT / SAML) ── */
+  .tool-tabs-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+  }
+
+  .tool-tab {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text3);
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 12px 18px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    margin-bottom: -1px;
+    transition: color 0.15s;
+  }
+
+  .tool-tab:hover { color: var(--text2); }
+  .tool-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  /* ── Page body ── */
+  .page-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 24px;
+    max-width: 960px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  .tool-panel { display: none; flex-direction: column; gap: 24px; }
+  .tool-panel.active { display: flex; }
+
+  /* ── Mode switcher (Encode / Decode) ── */
+  .mode-switcher {
+    display: inline-flex;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .mode-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 16px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: var(--text3);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .mode-btn.active { background: var(--surface); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+
+  /* ── Cards ── */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .card-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  /* ── Form elements ── */
+  textarea, input, select {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+  }
+
+  textarea:focus, input:focus, select:focus { border-color: var(--accent); }
+  textarea::placeholder, input::placeholder { color: var(--text3); }
+
+  textarea {
+    padding: 12px;
+    resize: vertical;
+    line-height: 1.7;
+  }
+
+  input { padding: 8px 12px; height: 36px; }
+
+  select {
+    padding: 0 10px;
+    height: 36px;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  label {
+    font-size: 12px;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 5px;
+  }
+
+  .field { display: flex; flex-direction: column; }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0 20px;
+    height: 36px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-primary:hover { opacity: 0.88; }
+
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text2);
+    padding: 0 14px;
+    height: 30px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: color 0.15s;
+  }
+
+  .btn-secondary:hover { color: var(--text); }
+
+  .btn-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Output / result areas ── */
+  .output-area {
+    position: relative;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    min-height: 80px;
+  }
+
+  .output-content {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.75;
+    padding: 12px 44px 12px 14px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text);
+  }
+
+  .output-copy {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text3);
+    padding: 3px 8px;
+    cursor: pointer;
+    transition: color 0.15s;
+  }
+
+  .output-copy:hover { color: var(--text); }
+
+  /* ── JWT token parts ── */
+  .jwt-parts { display: flex; flex-direction: column; gap: 12px; }
+
+  .jwt-part-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .jwt-part-label.header-lbl { color: #dc2626; }
+  .jwt-part-label.payload-lbl { color: #b45309; }
+  .jwt-part-label.sig-lbl { color: #7c3aed; }
+
+  .jwt-dot {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* JWT token display with coloured parts */
+  .jwt-token-display {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    padding: 12px 44px 12px 14px;
+    word-break: break-all;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+  }
+
+  .jwt-p1 { color: #dc2626; }
+  .jwt-p2 { color: #b45309; }
+  .jwt-p3 { color: #7c3aed; }
+  .jwt-sep { color: var(--text3); }
+
+  /* ── Alert / hint ── */
+  .hint {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--mono);
+    padding: 8px 12px;
+    background: var(--surface2);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+
+  .alert {
+    font-size: 12px;
+    font-family: var(--mono);
+    padding: 10px 14px;
+    border-radius: var(--radius);
+    display: none;
+  }
+
+  .alert.show { display: block; }
+  .alert-err { background: var(--red-dim); color: var(--red); border: 1px solid rgba(220,38,38,0.15); }
+  .alert-ok  { background: var(--green-dim); color: var(--green); border: 1px solid rgba(22,163,74,0.15); }
+
+  /* ── Sig status badge ── */
+  .sig-badge {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 6px;
+    display: none;
+  }
+
+  .sig-badge.show { display: inline-block; }
+  .sig-valid { background: var(--green-dim); color: var(--green); }
+  .sig-invalid { background: var(--red-dim); color: var(--red); }
+  .sig-skipped { background: var(--surface3); color: var(--text3); }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+  /* ── Responsive ── */
+  @media (max-width: 680px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Shared nav -->
+<nav class="topnav">
+  <div class="nav-brand"><span class="nav-dot"></span>DEV TOOLS</div>
+  <div class="nav-links">
+    <a class="nav-link" href="crud-client.html">HTTP Client</a>
+    <a class="nav-link active" href="token-tools.html">Token Tools</a>
+    <a class="nav-link" href="json-tools.html">JSON</a>
+    <a class="nav-link" href="regex-tester.html">Regex</a>
+    <a class="nav-link" href="encoders.html">Encoders</a>
+  </div>
+</nav>
+
+<!-- Tool tab bar -->
+<div class="tool-tabs-bar">
+  <button class="tool-tab active" onclick="switchTool('jwt', this)">JWT</button>
+  <button class="tool-tab" onclick="switchTool('saml', this)">SAML</button>
+</div>
+
+<!-- ════════════════════════════════════════════
+     JWT PANEL
+════════════════════════════════════════════ -->
+<div class="page-body">
+
+  <div class="tool-panel active" id="panel-jwt">
+
+    <div class="mode-switcher">
+      <button class="mode-btn active" onclick="switchMode('jwt', 'decode', this)">Decode</button>
+      <button class="mode-btn" onclick="switchMode('jwt', 'encode', this)">Encode</button>
+    </div>
+
+    <!-- JWT DECODE -->
+    <div id="jwt-decode">
+
+      <div class="card">
+        <div class="card-title">Token input</div>
+        <div class="field">
+          <textarea id="jwt-decode-input" rows="4" placeholder="Paste a JWT token here… eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.xxx.yyy" spellcheck="false" oninput="jwtDecode()"></textarea>
+        </div>
+
+        <!-- Coloured token preview -->
+        <div id="jwt-token-preview" style="display:none;">
+          <div class="card-title" style="margin-bottom:6px;">Token parts</div>
+          <div class="jwt-token-display" id="jwt-token-colored"></div>
+        </div>
+      </div>
+
+      <div class="jwt-parts" id="jwt-decoded-parts" style="display:none;">
+
+        <!-- Header -->
+        <div class="card">
+          <div class="jwt-part-label header-lbl">
+            <span class="jwt-dot" style="background:#dc2626;"></span>Header
+          </div>
+          <div class="output-area">
+            <button class="output-copy" onclick="copyEl('jwt-header-out')">Copy</button>
+            <div class="output-content" id="jwt-header-out"></div>
+          </div>
+        </div>
+
+        <!-- Payload -->
+        <div class="card">
+          <div class="jwt-part-label payload-lbl">
+            <span class="jwt-dot" style="background:#b45309;"></span>Payload
+          </div>
+          <div class="output-area">
+            <button class="output-copy" onclick="copyEl('jwt-payload-out')">Copy</button>
+            <div class="output-content" id="jwt-payload-out"></div>
+          </div>
+        </div>
+
+        <!-- Signature -->
+        <div class="card">
+          <div class="jwt-part-label sig-lbl" style="justify-content:space-between;">
+            <span style="display:flex;align-items:center;gap:6px;">
+              <span class="jwt-dot" style="background:#7c3aed;"></span>Signature
+            </span>
+            <span class="sig-badge show sig-skipped" id="jwt-sig-badge">not verified</span>
+          </div>
+          <div class="hint">Signature verification requires the secret / public key. Enter it below to verify.</div>
+          <div class="two-col">
+            <div class="field">
+              <label>Algorithm</label>
+              <select id="jwt-verify-alg">
+                <option value="HS256">HS256</option>
+                <option value="HS384">HS384</option>
+                <option value="HS512">HS512</option>
+                <option value="RS256">RS256 (public key)</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Secret / Public key</label>
+              <input type="text" id="jwt-verify-secret" placeholder="your-secret or -----BEGIN PUBLIC KEY-----" spellcheck="false" />
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" onclick="jwtVerify()">Verify signature</button>
+            <div class="alert alert-err" id="jwt-verify-err"></div>
+            <div class="alert alert-ok"  id="jwt-verify-ok"></div>
+          </div>
+          <div class="output-area">
+            <div class="output-content" id="jwt-sig-out"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="alert alert-err show" id="jwt-decode-err" style="display:none;"></div>
+
+    </div><!-- /jwt-decode -->
+
+    <!-- JWT ENCODE -->
+    <div id="jwt-encode" style="display:none;">
+
+      <div class="card">
+        <div class="card-title">Header</div>
+        <div class="field">
+          <textarea id="jwt-enc-header" rows="4" spellcheck="false">{"alg": "HS256", "typ": "JWT"}</textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Payload</div>
+        <div class="field">
+          <textarea id="jwt-enc-payload" rows="6" spellcheck="false">{
+  "sub": "1234567890",
+  "name": "John Doe",
+  "iat": 1516239022
+}</textarea>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Signing</div>
+        <div class="two-col">
+          <div class="field">
+            <label>Algorithm</label>
+            <select id="jwt-enc-alg" onchange="onEncAlgChange()">
+              <option value="HS256">HS256</option>
+              <option value="HS384">HS384</option>
+              <option value="HS512">HS512</option>
+              <option value="RS256">RS256</option>
+              <option value="none">none (unsigned)</option>
+            </select>
+          </div>
+          <div class="field" id="jwt-enc-secret-wrap">
+            <label id="jwt-enc-secret-label">Secret (UTF-8)</label>
+            <input type="text" id="jwt-enc-secret" placeholder="your-256-bit-secret" spellcheck="false" />
+          </div>
+        </div>
+        <div class="field" id="jwt-enc-privkey-wrap" style="display:none;">
+          <label>RSA Private key (PEM)</label>
+          <textarea id="jwt-enc-privkey" rows="5" placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----" spellcheck="false"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="jwtEncode()">Generate token</button>
+        </div>
+        <div class="alert alert-err" id="jwt-enc-err"></div>
+      </div>
+
+      <div class="card" id="jwt-enc-result-card" style="display:none;">
+        <div class="card-title">Generated token</div>
+        <div class="jwt-token-display" id="jwt-enc-token-colored"></div>
+        <div class="output-area">
+          <button class="output-copy" onclick="copyEl('jwt-enc-token-raw')">Copy</button>
+          <div class="output-content" id="jwt-enc-token-raw"></div>
+        </div>
+      </div>
+
+    </div><!-- /jwt-encode -->
+  </div><!-- /panel-jwt -->
+
+
+  <!-- ════════════════════════════════════════════
+       SAML PANEL
+  ════════════════════════════════════════════ -->
+  <div class="tool-panel" id="panel-saml">
+
+    <div class="mode-switcher">
+      <button class="mode-btn active" onclick="switchMode('saml', 'decode', this)">Decode</button>
+      <button class="mode-btn" onclick="switchMode('saml', 'encode', this)">Encode</button>
+    </div>
+
+    <!-- SAML DECODE -->
+    <div id="saml-decode">
+      <div class="card">
+        <div class="card-title">Base64 input</div>
+        <div class="field">
+          <textarea id="saml-decode-input" rows="5" placeholder="Paste a base64-encoded SAML assertion or AuthnRequest here…" spellcheck="false"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="samlDecode()">Decode</button>
+          <button class="btn-secondary" onclick="clearField('saml-decode-input'); clearField('saml-decode-output'); hide('saml-decode-result')">Clear</button>
+        </div>
+        <div class="alert alert-err" id="saml-decode-err"></div>
+      </div>
+
+      <div class="card" id="saml-decode-result" style="display:none;">
+        <div class="card-title">XML output</div>
+        <div class="output-area">
+          <button class="output-copy" onclick="copyEl('saml-decode-output')">Copy</button>
+          <div class="output-content" id="saml-decode-output"></div>
+        </div>
+      </div>
+    </div><!-- /saml-decode -->
+
+    <!-- SAML ENCODE -->
+    <div id="saml-encode" style="display:none;">
+      <div class="card">
+        <div class="card-title">XML input</div>
+        <div class="field">
+          <textarea id="saml-encode-input" rows="10" placeholder="Paste XML here…" spellcheck="false"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="samlEncode()">Encode to base64</button>
+          <button class="btn-secondary" onclick="clearField('saml-encode-input'); clearField('saml-encode-output'); hide('saml-encode-result')">Clear</button>
+          <button class="btn-secondary" onclick="samlFormatXml()">Format XML</button>
+        </div>
+        <div class="alert alert-err" id="saml-encode-err"></div>
+      </div>
+
+      <div class="card" id="saml-encode-result" style="display:none;">
+        <div class="card-title">Base64 output</div>
+        <div class="output-area">
+          <button class="output-copy" onclick="copyEl('saml-encode-output')">Copy</button>
+          <div class="output-content" id="saml-encode-output"></div>
+        </div>
+      </div>
+    </div><!-- /saml-encode -->
+
+  </div><!-- /panel-saml -->
+
+</div><!-- /page-body -->
+
+<script>
+/* ─── Utility ─────────────────────────────────────── */
+
+function $(id) { return document.getElementById(id); }
+
+function show(id) { $(id).style.display = ''; }
+function hide(id) { $(id).style.display = 'none'; }
+
+function clearField(id) { $(id).value = ''; }
+
+function copyEl(id) {
+  const text = $(id).innerText || $(id).value || '';
+  navigator.clipboard.writeText(text.trim()).then(() => showToast('Copied!'));
+}
+
+function showToast(msg) {
+  let t = $('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-family:var(--mono);font-size:12px;padding:8px 18px;border-radius:8px;z-index:999;pointer-events:none;transition:opacity 0.3s;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.opacity = '1';
+  clearTimeout(t._to);
+  t._to = setTimeout(() => t.style.opacity = '0', 1800);
+}
+
+function showAlert(id, msg) {
+  const el = $(id);
+  el.textContent = msg;
+  el.classList.add('show');
+  el.style.display = '';
+}
+
+function hideAlert(id) {
+  const el = $(id);
+  el.classList.remove('show');
+  el.style.display = 'none';
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
+function syntaxJson(obj) {
+  const s = JSON.stringify(obj, null, 2);
+  return s.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+    if (/^"/.test(m)) {
+      if (/:$/.test(m)) return `<span style="color:#1d4ed8">${m}</span>`;
+      return `<span style="color:#15803d">${m}</span>`;
+    }
+    if (/true|false/.test(m)) return `<span style="color:#7c3aed">${m}</span>`;
+    if (/null/.test(m)) return `<span style="color:#999990">${m}</span>`;
+    return `<span style="color:#b45309">${m}</span>`;
+  });
+}
+
+/* ─── Navigation ──────────────────────────────────── */
+
+function switchTool(name, btn) {
+  document.querySelectorAll('.tool-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  $('panel-' + name).classList.add('active');
+}
+
+function switchMode(tool, mode, btn) {
+  /* toggle mode buttons within the tool panel */
+  const panel = $('panel-' + tool);
+  panel.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+
+  /* show/hide the encode/decode sub-divs */
+  show(tool + '-decode');
+  show(tool + '-encode');
+  hide(tool + (mode === 'decode' ? '-encode' : '-decode'));
+}
+
+/* ─── Base64 URL helpers ──────────────────────────── */
+
+function b64urlDecode(str) {
+  /* Convert base64url to base64 and decode */
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return atob(str);
+}
+
+function b64urlEncode(str) {
+  return btoa(str).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function strToUint8(str) {
+  return new TextEncoder().encode(str);
+}
+
+function uint8ToB64url(arr) {
+  let binary = '';
+  arr.forEach(b => binary += String.fromCharCode(b));
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
+function b64urlToUint8(str) {
+  const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/'));
+  return Uint8Array.from(bin, c => c.charCodeAt(0));
+}
+
+/* ─── JWT decode ──────────────────────────────────── */
+
+function jwtDecode() {
+  const raw = $('jwt-decode-input').value.trim();
+  hideAlert('jwt-decode-err');
+
+  if (!raw) {
+    hide('jwt-token-preview');
+    hide('jwt-decoded-parts');
+    return;
+  }
+
+  const parts = raw.split('.');
+  if (parts.length !== 3) {
+    showAlert('jwt-decode-err', 'Invalid JWT: expected 3 dot-separated parts.');
+    hide('jwt-token-preview');
+    hide('jwt-decoded-parts');
+    return;
+  }
+
+  let header, payload;
+  try {
+    header  = JSON.parse(b64urlDecode(parts[0]));
+    payload = JSON.parse(b64urlDecode(parts[1]));
+  } catch(e) {
+    showAlert('jwt-decode-err', 'Failed to parse JWT: ' + e.message);
+    hide('jwt-token-preview');
+    hide('jwt-decoded-parts');
+    return;
+  }
+
+  /* Coloured token preview */
+  $('jwt-token-colored').innerHTML =
+    `<span class="jwt-p1">${escHtml(parts[0])}</span>` +
+    `<span class="jwt-sep">.</span>` +
+    `<span class="jwt-p2">${escHtml(parts[1])}</span>` +
+    `<span class="jwt-sep">.</span>` +
+    `<span class="jwt-p3">${escHtml(parts[2])}</span>`;
+
+  $('jwt-header-out').innerHTML  = syntaxJson(header);
+  $('jwt-payload-out').innerHTML = syntaxJson(payload);
+  $('jwt-sig-out').textContent   = parts[2];
+
+  /* Expiry hint */
+  if (payload.exp) {
+    const exp = new Date(payload.exp * 1000);
+    const expired = exp < new Date();
+    const badge = $('jwt-sig-badge');
+    badge.className = 'sig-badge show ' + (expired ? 'sig-invalid' : 'sig-skipped');
+    badge.textContent = expired
+      ? 'expired ' + exp.toLocaleString()
+      : 'expires ' + exp.toLocaleString();
+  } else {
+    $('jwt-sig-badge').className = 'sig-badge show sig-skipped';
+    $('jwt-sig-badge').textContent = 'not verified';
+  }
+
+  show('jwt-token-preview');
+  show('jwt-decoded-parts');
+}
+
+/* ─── JWT verify ──────────────────────────────────── */
+
+async function jwtVerify() {
+  hideAlert('jwt-verify-err');
+  hideAlert('jwt-verify-ok');
+
+  const raw    = $('jwt-decode-input').value.trim();
+  const secret = $('jwt-verify-secret').value.trim();
+  const alg    = $('jwt-verify-alg').value;
+
+  if (!raw)    { showAlert('jwt-verify-err', 'Paste a token first.'); return; }
+  if (!secret) { showAlert('jwt-verify-err', 'Enter a secret or public key.'); return; }
+
+  const parts = raw.split('.');
+  if (parts.length !== 3) { showAlert('jwt-verify-err', 'Invalid JWT.'); return; }
+
+  try {
+    const signingInput = strToUint8(parts[0] + '.' + parts[1]);
+    const signature    = b64urlToUint8(parts[2]);
+
+    let cryptoKey, result;
+
+    if (alg.startsWith('HS')) {
+      const hashAlg = 'SHA-' + alg.slice(2);
+      cryptoKey = await crypto.subtle.importKey(
+        'raw', strToUint8(secret),
+        { name: 'HMAC', hash: hashAlg }, false, ['verify']
+      );
+      result = await crypto.subtle.verify('HMAC', cryptoKey, signature, signingInput);
+    } else if (alg === 'RS256') {
+      /* Strip PEM header/footer and decode */
+      const pemBody = secret.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+      const keyData = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+      cryptoKey = await crypto.subtle.importKey(
+        'spki', keyData.buffer,
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['verify']
+      );
+      result = await crypto.subtle.verify('RSASSA-PKCS1-v1_5', cryptoKey, signature, signingInput);
+    }
+
+    const badge = $('jwt-sig-badge');
+    if (result) {
+      badge.className = 'sig-badge show sig-valid';
+      badge.textContent = 'signature valid';
+      showAlert('jwt-verify-ok', 'Signature is valid.');
+    } else {
+      badge.className = 'sig-badge show sig-invalid';
+      badge.textContent = 'signature invalid';
+      showAlert('jwt-verify-err', 'Signature is INVALID — token may have been tampered with.');
+    }
+  } catch(e) {
+    showAlert('jwt-verify-err', 'Verification error: ' + e.message);
+  }
+}
+
+/* ─── JWT encode ──────────────────────────────────── */
+
+function onEncAlgChange() {
+  const alg = $('jwt-enc-alg').value;
+  if (alg === 'RS256') {
+    hide('jwt-enc-secret-wrap');
+    show('jwt-enc-privkey-wrap');
+  } else if (alg === 'none') {
+    hide('jwt-enc-secret-wrap');
+    hide('jwt-enc-privkey-wrap');
+  } else {
+    show('jwt-enc-secret-wrap');
+    hide('jwt-enc-privkey-wrap');
+    const labels = { HS256: 'Secret (UTF-8)', HS384: 'Secret (UTF-8)', HS512: 'Secret (UTF-8)' };
+    $('jwt-enc-secret-label').textContent = labels[alg] || 'Secret';
+  }
+}
+
+async function jwtEncode() {
+  hideAlert('jwt-enc-err');
+
+  let header, payload;
+  try { header  = JSON.parse($('jwt-enc-header').value);  } catch(e) { showAlert('jwt-enc-err', 'Invalid header JSON: ' + e.message); return; }
+  try { payload = JSON.parse($('jwt-enc-payload').value); } catch(e) { showAlert('jwt-enc-err', 'Invalid payload JSON: ' + e.message); return; }
+
+  const alg = $('jwt-enc-alg').value;
+
+  /* Override alg in header silently */
+  header.alg = alg === 'none' ? 'none' : alg;
+
+  const headerB64  = b64urlEncode(JSON.stringify(header));
+  const payloadB64 = b64urlEncode(JSON.stringify(payload));
+  const signingInput = headerB64 + '.' + payloadB64;
+
+  let token;
+
+  try {
+    if (alg === 'none') {
+      token = signingInput + '.';
+    } else if (alg.startsWith('HS')) {
+      const secret  = $('jwt-enc-secret').value;
+      if (!secret) { showAlert('jwt-enc-err', 'Enter a secret.'); return; }
+      const hashAlg = 'SHA-' + alg.slice(2);
+      const key = await crypto.subtle.importKey(
+        'raw', strToUint8(secret),
+        { name: 'HMAC', hash: hashAlg }, false, ['sign']
+      );
+      const sig = await crypto.subtle.sign('HMAC', key, strToUint8(signingInput));
+      token = signingInput + '.' + uint8ToB64url(new Uint8Array(sig));
+    } else if (alg === 'RS256') {
+      const pem = $('jwt-enc-privkey').value.trim();
+      if (!pem) { showAlert('jwt-enc-err', 'Enter a private key.'); return; }
+      const pemBody = pem.replace(/-----[^-]+-----/g, '').replace(/\s/g, '');
+      const keyData = Uint8Array.from(atob(pemBody), c => c.charCodeAt(0));
+      const key = await crypto.subtle.importKey(
+        'pkcs8', keyData.buffer,
+        { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' }, false, ['sign']
+      );
+      const sig = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, strToUint8(signingInput));
+      token = signingInput + '.' + uint8ToB64url(new Uint8Array(sig));
+    }
+  } catch(e) {
+    showAlert('jwt-enc-err', 'Signing error: ' + e.message);
+    return;
+  }
+
+  const parts = token.split('.');
+  $('jwt-enc-token-colored').innerHTML =
+    `<span class="jwt-p1">${escHtml(parts[0])}</span>` +
+    `<span class="jwt-sep">.</span>` +
+    `<span class="jwt-p2">${escHtml(parts[1])}</span>` +
+    `<span class="jwt-sep">.</span>` +
+    `<span class="jwt-p3">${escHtml(parts[2] || '')}</span>`;
+
+  $('jwt-enc-token-raw').textContent = token;
+  show('jwt-enc-result-card');
+}
+
+/* ─── SAML decode ─────────────────────────────────── */
+
+function samlDecode() {
+  hideAlert('saml-decode-err');
+  const raw = $('saml-decode-input').value.trim();
+  if (!raw) { showAlert('saml-decode-err', 'Paste a base64 string first.'); return; }
+
+  try {
+    /* Handle both standard base64 and base64url */
+    const cleaned = raw.replace(/-/g, '+').replace(/_/g, '/');
+    const xml = decodeURIComponent(
+      atob(cleaned).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join('')
+    );
+    $('saml-decode-output').textContent = formatXml(xml);
+    show('saml-decode-result');
+  } catch(e) {
+    showAlert('saml-decode-err', 'Decode failed: ' + e.message + ' — make sure input is valid base64.');
+  }
+}
+
+/* ─── SAML encode ─────────────────────────────────── */
+
+function samlEncode() {
+  hideAlert('saml-encode-err');
+  const xml = $('saml-encode-input').value.trim();
+  if (!xml) { showAlert('saml-encode-err', 'Paste XML first.'); return; }
+
+  try {
+    const encoded = btoa(unescape(encodeURIComponent(xml)));
+    $('saml-encode-output').textContent = encoded;
+    show('saml-encode-result');
+  } catch(e) {
+    showAlert('saml-encode-err', 'Encode failed: ' + e.message);
+  }
+}
+
+function samlFormatXml() {
+  const el = $('saml-encode-input');
+  try {
+    el.value = formatXml(el.value);
+  } catch(e) {
+    showAlert('saml-encode-err', 'Could not format XML: ' + e.message);
+  }
+}
+
+/* ─── XML formatter ───────────────────────────────── */
+
+function formatXml(xml) {
+  /* Simple indent-based XML formatter */
+  let formatted = '';
+  let indent = 0;
+  const tab = '  ';
+
+  xml = xml.trim();
+
+  /* Split on tags, keeping delimiters */
+  const tokens = xml.split(/(<[^>]+>)/g).filter(t => t.trim());
+
+  tokens.forEach(token => {
+    if (token.startsWith('</')) {
+      /* Closing tag */
+      indent = Math.max(0, indent - 1);
+      formatted += tab.repeat(indent) + token + '\n';
+    } else if (token.startsWith('<') && !token.startsWith('<?') && !token.endsWith('/>') && !token.startsWith('<!--')) {
+      /* Opening tag */
+      formatted += tab.repeat(indent) + token + '\n';
+      indent++;
+    } else if (token.startsWith('<?') || token.endsWith('/>') || token.startsWith('<!--')) {
+      /* Self-closing or declaration */
+      formatted += tab.repeat(indent) + token + '\n';
+    } else {
+      /* Text content */
+      const text = token.trim();
+      if (text) formatted += tab.repeat(indent) + text + '\n';
+    }
+  });
+
+  return formatted.trim();
+}
+
+/* ─── Init ────────────────────────────────────────── */
+
+/* Hide encode sections on load (decode is default) */
+hide('jwt-encode');
+hide('saml-encode');
+</script>
+
+</body>
+</html>

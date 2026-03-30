@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Regex Tester — Dev Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0f0ee;
+    --surface3: #e8e8e5;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --text2: #555550;
+    --text3: #999990;
+    --accent: #2563eb;
+    --accent-dim: rgba(37,99,235,0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.08);
+    --radius: 8px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  /* Highlight colour palette for match groups */
+  --h0: rgba(37,99,235,0.15);
+  --h1: rgba(124,58,237,0.15);
+  --h2: rgba(180,83,9,0.15);
+  --h3: rgba(22,163,74,0.15);
+  --h4: rgba(220,38,38,0.12);
+
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* Nav */
+  .topnav { display: flex; align-items: center; gap: 24px; padding: 0 24px; height: 48px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .nav-brand { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; display: flex; align-items: center; gap: 8px; margin-right: 8px; }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .nav-links { display: flex; gap: 2px; }
+  .nav-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text3); text-decoration: none; padding: 6px 12px; border-radius: var(--radius); transition: color 0.15s, background 0.15s; letter-spacing: 0.03em; }
+  .nav-link:hover { color: var(--text); background: var(--surface2); }
+  .nav-link.active { color: var(--text); background: var(--surface2); }
+
+  /* Page */
+  .page-body { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; max-width: 960px; width: 100%; margin: 0 auto; }
+
+  /* Cards */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .card-title { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+
+  /* Regex input row */
+  .regex-bar { display: flex; align-items: center; gap: 0; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); overflow: hidden; transition: border-color 0.15s; }
+  .regex-bar:focus-within { border-color: var(--accent); }
+  .regex-slash { font-family: var(--mono); font-size: 16px; color: var(--text3); padding: 0 8px; user-select: none; }
+  .regex-input { flex: 1; font-family: var(--mono); font-size: 13px; background: transparent; border: none; color: var(--text); outline: none; padding: 9px 4px; }
+  .regex-flags { font-family: var(--mono); font-size: 13px; background: transparent; border: none; border-left: 1px solid var(--border2); color: var(--accent); outline: none; padding: 9px 10px; width: 70px; }
+  .regex-flags::placeholder { color: var(--text3); }
+
+  /* Flag toggles */
+  .flag-toggles { display: flex; gap: 6px; flex-wrap: wrap; }
+  .flag-btn { font-family: var(--mono); font-size: 11px; font-weight: 500; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border2); background: var(--surface2); color: var(--text3); cursor: pointer; letter-spacing: 0.06em; transition: all 0.15s; }
+  .flag-btn.on { background: var(--accent-dim); color: var(--accent); border-color: rgba(37,99,235,0.25); }
+  .flag-btn title-attr { display: none; }
+
+  /* Test string */
+  textarea { font-family: var(--mono); font-size: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); outline: none; transition: border-color 0.15s; width: 100%; padding: 12px; resize: vertical; line-height: 1.7; min-height: 100px; }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text3); }
+
+  /* Highlighted test area */
+  .match-display {
+    font-family: var(--mono);
+    font-size: 12px;
+    line-height: 1.85;
+    padding: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    white-space: pre-wrap;
+    word-break: break-all;
+    min-height: 80px;
+  }
+
+  /* Match highlights — cycling colours */
+  .m0 { background: rgba(37,99,235,0.15); border-radius: 3px; }
+  .m1 { background: rgba(124,58,237,0.15); border-radius: 3px; }
+  .m2 { background: rgba(180,83,9,0.15); border-radius: 3px; }
+  .m3 { background: rgba(22,163,74,0.15); border-radius: 3px; }
+  .m4 { background: rgba(220,38,38,0.12); border-radius: 3px; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .stat { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+  .stat strong { color: var(--text); }
+  .stat-badge { font-family: var(--mono); font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 6px; }
+  .badge-ok { background: var(--green-dim); color: var(--green); }
+  .badge-err { background: var(--red-dim); color: var(--red); }
+  .badge-none { background: var(--surface3); color: var(--text3); }
+
+  /* Matches table */
+  .matches-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+  .match-row { font-family: var(--mono); font-size: 12px; background: var(--surface2); border-radius: var(--radius); padding: 8px 12px; display: flex; flex-direction: column; gap: 4px; }
+  .match-row-header { display: flex; align-items: center; gap: 10px; }
+  .match-index { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 4px; }
+  .match-value { color: var(--text); word-break: break-all; }
+  .match-pos { color: var(--text3); font-size: 10px; }
+  .group-row { padding: 3px 0 0 16px; color: var(--text2); font-size: 11px; }
+  .group-name { color: var(--text3); }
+
+  /* Replace */
+  .replace-input { font-family: var(--mono); font-size: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); outline: none; padding: 8px 12px; width: 100%; transition: border-color 0.15s; height: 36px; }
+  .replace-input:focus { border-color: var(--accent); }
+  .replace-input::placeholder { color: var(--text3); }
+
+  .btn-primary { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 0 16px; height: 32px; cursor: pointer; transition: opacity 0.15s; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { font-family: var(--mono); font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); padding: 0 12px; height: 30px; cursor: pointer; transition: color 0.15s; }
+  .btn-secondary:hover { color: var(--text); }
+  .btn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .output-area { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px; font-family: var(--mono); font-size: 12px; line-height: 1.7; white-space: pre-wrap; word-break: break-all; min-height: 60px; color: var(--text); }
+
+  .empty-state { text-align: center; color: var(--text3); font-family: var(--mono); font-size: 12px; padding: 20px; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-brand"><span class="nav-dot"></span>DEV TOOLS</div>
+  <div class="nav-links">
+    <a class="nav-link" href="crud-client.html">HTTP Client</a>
+    <a class="nav-link" href="token-tools.html">Token Tools</a>
+    <a class="nav-link" href="json-tools.html">JSON</a>
+    <a class="nav-link active" href="regex-tester.html">Regex</a>
+    <a class="nav-link" href="encoders.html">Encoders</a>
+  </div>
+</nav>
+
+<div class="page-body">
+
+  <!-- Pattern -->
+  <div class="card">
+    <div class="card-title">
+      Pattern
+      <div class="stats-bar" id="stats-bar">
+        <span class="stat-badge badge-none" id="match-badge">no input</span>
+      </div>
+    </div>
+    <div class="regex-bar">
+      <span class="regex-slash">/</span>
+      <input class="regex-input" id="regex-input" placeholder="([a-z]+)\d+" spellcheck="false" oninput="runRegex()" />
+      <span class="regex-slash">/</span>
+      <input class="regex-flags" id="regex-flags" placeholder="gim" maxlength="8" spellcheck="false" oninput="runRegex()" />
+    </div>
+    <div class="flag-toggles">
+      <button class="flag-btn on" data-flag="g" onclick="toggleFlag(this)" title="global — find all matches">g</button>
+      <button class="flag-btn" data-flag="i" onclick="toggleFlag(this)" title="case insensitive">i</button>
+      <button class="flag-btn" data-flag="m" onclick="toggleFlag(this)" title="multiline — ^ and $ match line boundaries">m</button>
+      <button class="flag-btn" data-flag="s" onclick="toggleFlag(this)" title="dotAll — . matches newlines">s</button>
+      <button class="flag-btn" data-flag="u" onclick="toggleFlag(this)" title="unicode">u</button>
+      <button class="flag-btn" data-flag="d" onclick="toggleFlag(this)" title="indices — include match indices">d</button>
+    </div>
+  </div>
+
+  <!-- Test string -->
+  <div class="card">
+    <div class="card-title">Test string</div>
+    <textarea id="test-input" placeholder="Type or paste your test string here…" oninput="runRegex()" rows="4" spellcheck="false"></textarea>
+    <div class="card-title" style="margin-top:4px;">Match preview</div>
+    <div class="match-display" id="match-display"><span style="color:var(--text3)">Matches will be highlighted here…</span></div>
+  </div>
+
+  <!-- Matches -->
+  <div class="card" id="matches-card">
+    <div class="card-title">Matches &amp; groups</div>
+    <div class="matches-list" id="matches-list">
+      <div class="empty-state">Enter a pattern and test string above</div>
+    </div>
+  </div>
+
+  <!-- Replace -->
+  <div class="card">
+    <div class="card-title">Replace</div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input class="replace-input" id="replace-input" placeholder="Replacement string — use $1, $2, $& for captures" spellcheck="false" oninput="runReplace()" />
+    </div>
+    <div class="card-title" style="margin-top:4px;">Result</div>
+    <div class="output-area" id="replace-output"><span style="color:var(--text3)">Replace result will appear here…</span></div>
+  </div>
+
+</div>
+
+<script>
+  function $(id) { return document.getElementById(id); }
+
+  function showToast(msg) {
+    let t = $('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-family:var(--mono);font-size:12px;padding:8px 18px;border-radius:8px;z-index:999;pointer-events:none;transition:opacity 0.3s;'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._to); t._to = setTimeout(() => t.style.opacity = '0', 1800);
+  }
+
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* Flag toggles */
+  function toggleFlag(btn) {
+    btn.classList.toggle('on');
+    syncFlags();
+    runRegex();
+  }
+
+  function syncFlags() {
+    const active = [...document.querySelectorAll('.flag-btn.on')].map(b => b.dataset.flag).join('');
+    $('regex-flags').value = active;
+  }
+
+  function syncBtnsFromInput() {
+    const flags = $('regex-flags').value;
+    document.querySelectorAll('.flag-btn').forEach(btn => {
+      btn.classList.toggle('on', flags.includes(btn.dataset.flag));
+    });
+  }
+
+  $('regex-flags').addEventListener('input', () => { syncBtnsFromInput(); runRegex(); });
+
+  /* Main run */
+  const COLOURS = ['m0','m1','m2','m3','m4'];
+
+  function runRegex() {
+    const pattern = $('regex-input').value;
+    const flags   = $('regex-flags').value;
+    const test    = $('test-input').value;
+    const badge   = $('match-badge');
+
+    if (!pattern) {
+      $('match-display').innerHTML = esc(test) || '<span style="color:var(--text3)">Matches will be highlighted here…</span>';
+      badge.textContent = 'no pattern';
+      badge.className = 'stat-badge badge-none';
+      $('matches-list').innerHTML = '<div class="empty-state">Enter a pattern above</div>';
+      return;
+    }
+
+    let rx;
+    try {
+      rx = new RegExp(pattern, flags);
+    } catch(e) {
+      badge.textContent = e.message;
+      badge.className = 'stat-badge badge-err';
+      $('match-display').textContent = test;
+      $('matches-list').innerHTML = '<div class="empty-state" style="color:var(--red)">Invalid pattern</div>';
+      return;
+    }
+
+    if (!test) {
+      badge.textContent = 'no test string';
+      badge.className = 'stat-badge badge-none';
+      $('match-display').innerHTML = '<span style="color:var(--text3)">Matches will be highlighted here…</span>';
+      $('matches-list').innerHTML = '<div class="empty-state">Enter a test string</div>';
+      return;
+    }
+
+    /* Collect matches */
+    const matches = [];
+    let m;
+    const safeRx = new RegExp(rx.source, rx.flags.includes('g') ? rx.flags : rx.flags + 'g');
+    while ((m = safeRx.exec(test)) !== null) {
+      matches.push({ index: m.index, value: m[0], groups: m.slice(1), namedGroups: m.groups || {} });
+      if (!flags.includes('g')) break;
+    }
+
+    /* Badge */
+    if (matches.length === 0) {
+      badge.textContent = 'no matches';
+      badge.className = 'stat-badge badge-none';
+    } else {
+      badge.textContent = matches.length + ' match' + (matches.length !== 1 ? 'es' : '');
+      badge.className = 'stat-badge badge-ok';
+    }
+
+    /* Highlight test string */
+    if (matches.length === 0) {
+      $('match-display').textContent = test;
+    } else {
+      let html = '';
+      let cursor = 0;
+      matches.forEach((match, i) => {
+        html += esc(test.slice(cursor, match.index));
+        html += `<mark class="${COLOURS[i % COLOURS.length]}">${esc(match.value)}</mark>`;
+        cursor = match.index + match.value.length;
+      });
+      html += esc(test.slice(cursor));
+      $('match-display').innerHTML = html;
+    }
+
+    /* Matches list */
+    if (matches.length === 0) {
+      $('matches-list').innerHTML = '<div class="empty-state">No matches found</div>';
+    } else {
+      $('matches-list').innerHTML = matches.map((match, i) => {
+        const colClass = COLOURS[i % COLOURS.length];
+        let groupsHtml = '';
+        match.groups.forEach((g, gi) => {
+          if (g !== undefined) groupsHtml += `<div class="group-row"><span class="group-name">$${gi+1}</span>  ${esc(g)}</div>`;
+        });
+        Object.entries(match.namedGroups).forEach(([k, v]) => {
+          groupsHtml += `<div class="group-row"><span class="group-name">?&lt;${esc(k)}&gt;</span>  ${esc(v)}</div>`;
+        });
+        return `
+          <div class="match-row">
+            <div class="match-row-header">
+              <span class="match-index ${colClass}" style="padding:2px 7px;border-radius:4px;">#${i+1}</span>
+              <span class="match-value">${esc(match.value)}</span>
+              <span class="match-pos">@ ${match.index}–${match.index + match.value.length}</span>
+            </div>
+            ${groupsHtml}
+          </div>`;
+      }).join('');
+    }
+
+    runReplace();
+  }
+
+  function runReplace() {
+    const pattern     = $('regex-input').value;
+    const flags       = $('regex-flags').value;
+    const test        = $('test-input').value;
+    const replacement = $('replace-input').value;
+    const out         = $('replace-output');
+
+    if (!pattern || !test) { out.innerHTML = '<span style="color:var(--text3)">Replace result will appear here…</span>'; return; }
+
+    try {
+      const rx = new RegExp(pattern, flags.includes('g') ? flags : flags + 'g');
+      out.textContent = test.replace(rx, replacement);
+    } catch(e) {
+      out.textContent = '';
+    }
+  }
+</script>
+</body>
+</html>
