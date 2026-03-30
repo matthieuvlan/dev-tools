@@ -398,6 +398,8 @@
     <a class="nav-link" href="json-tools.html">JSON</a>
     <a class="nav-link" href="regex-tester.html">Regex</a>
     <a class="nav-link" href="encoders.html">Encoders</a>
+    <a class="nav-link" href="text-diff.html">Text Diff</a>
+    <a class="nav-link" href="converters.html">Converters</a>
   </div>
 </nav>
 
@@ -1012,6 +1014,35 @@ function formatXml(xml) {
 /* Hide encode sections on load (decode is default) */
 hide('jwt-encode');
 hide('saml-encode');
+
+/* ── localStorage ── */
+(function() {
+  function save() {
+    const activeTab = document.querySelector('.tool-tab.active');
+    localStorage.setItem('tok_tab',          activeTab ? activeTab.textContent.trim() : '');
+    localStorage.setItem('tok_jwt_dec_in',   $('jwt-decode-input').value);
+    localStorage.setItem('tok_saml_dec_in',  $('saml-decode-input').value);
+    localStorage.setItem('tok_saml_enc_in',  $('saml-encode-input').value);
+  }
+  document.addEventListener('input', save);
+  const _st = window.switchTool;
+  window.switchTool = function(name, btn) { _st(name, btn); save(); };
+  function restore() {
+    const tab       = localStorage.getItem('tok_tab')         || '';
+    const jwtDecIn  = localStorage.getItem('tok_jwt_dec_in')  || '';
+    const samlDecIn = localStorage.getItem('tok_saml_dec_in') || '';
+    const samlEncIn = localStorage.getItem('tok_saml_enc_in') || '';
+    if (jwtDecIn)  { $('jwt-decode-input').value  = jwtDecIn;  jwtDecode(); }
+    if (samlDecIn)   $('saml-decode-input').value  = samlDecIn;
+    if (samlEncIn)   $('saml-encode-input').value  = samlEncIn;
+    if (tab === 'SAML') {
+      const btn = document.querySelectorAll('.tool-tab')[1];
+      if (btn) window.switchTool('saml', btn);
+    }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+  else restore();
+})();
 </script>
 
 </body>

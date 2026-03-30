@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Converters — Dev Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0f0ee;
+    --surface3: #e8e8e5;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --text2: #555550;
+    --text3: #999990;
+    --accent: #2563eb;
+    --accent-dim: rgba(37,99,235,0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.08);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  .topnav { display: flex; align-items: center; gap: 24px; padding: 0 24px; height: 48px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .nav-brand { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; display: flex; align-items: center; gap: 8px; margin-right: 8px; }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .nav-links { display: flex; gap: 2px; }
+  .nav-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text3); text-decoration: none; padding: 6px 12px; border-radius: var(--radius); transition: color 0.15s, background 0.15s; letter-spacing: 0.03em; }
+  .nav-link:hover { color: var(--text); background: var(--surface2); }
+  .nav-link.active { color: var(--text); background: var(--surface2); }
+
+  .tool-tabs-bar { background: var(--surface); border-bottom: 1px solid var(--border); padding: 0 24px; display: flex; }
+  .tool-tab { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text3); background: none; border: none; border-bottom: 2px solid transparent; padding: 12px 18px; cursor: pointer; letter-spacing: 0.04em; margin-bottom: -1px; transition: color 0.15s; }
+  .tool-tab:hover { color: var(--text2); }
+  .tool-tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+  .page-body { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; overflow: hidden; height: calc(100vh - 97px); }
+  .tool-panel { display: none; flex-direction: column; gap: 16px; flex: 1; overflow: hidden; }
+  .tool-panel.active { display: flex; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; flex: 1; overflow: hidden; }
+  .col { display: flex; flex-direction: column; gap: 8px; overflow: hidden; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .card.stretch { flex: 1; overflow: hidden; }
+  .card-title { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+
+  textarea { font-family: var(--mono); font-size: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); outline: none; transition: border-color 0.15s; width: 100%; padding: 12px; resize: none; line-height: 1.7; flex: 1; }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text3); }
+
+  .btn-primary { font-family: var(--mono); font-size: 12px; font-weight: 600; background: var(--accent); color: #fff; border: none; border-radius: var(--radius); padding: 0 16px; height: 32px; cursor: pointer; letter-spacing: 0.04em; transition: opacity 0.15s; white-space: nowrap; }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-secondary { font-family: var(--mono); font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); padding: 0 12px; height: 30px; cursor: pointer; transition: color 0.15s; white-space: nowrap; }
+  .btn-secondary:hover { color: var(--text); }
+  .btn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+
+  .output-area { position: relative; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); flex: 1; overflow-y: auto; }
+  .output-content { font-family: var(--mono); font-size: 12px; line-height: 1.75; padding: 12px 44px 12px 14px; white-space: pre-wrap; word-break: break-all; }
+  .output-copy { position: absolute; top: 8px; right: 8px; font-family: var(--mono); font-size: 10px; font-weight: 600; background: var(--surface3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text3); padding: 3px 8px; cursor: pointer; transition: color 0.15s; }
+  .output-copy:hover { color: var(--text); }
+
+  .mode-switcher { display: flex; gap: 4px; flex-shrink: 0; }
+  .mode-btn { font-family: var(--mono); font-size: 11px; font-weight: 500; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text3); padding: 0 12px; height: 28px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .mode-btn:hover { color: var(--text); }
+  .mode-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  .alert { font-size: 12px; font-family: var(--mono); padding: 8px 12px; border-radius: var(--radius); display: none; flex-shrink: 0; }
+  .alert.show { display: block; }
+  .alert-err { background: var(--red-dim); color: var(--red); border: 1px solid rgba(220,38,38,0.15); }
+
+  .options-row { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+  .opt-label { font-family: var(--mono); font-size: 11px; color: var(--text2); display: flex; align-items: center; gap: 6px; cursor: pointer; }
+  .opt-label input[type=checkbox] { accent-color: var(--accent); width: 13px; height: 13px; cursor: pointer; }
+  .opt-sep { color: var(--border2); }
+  .opt-label select, .opt-label input[type=text] { font-family: var(--mono); font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); border-radius: 6px; color: var(--text); padding: 2px 6px; outline: none; }
+  .opt-label input[type=text] { width: 36px; text-align: center; }
+
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-brand"><span class="nav-dot"></span>DEV TOOLS</div>
+  <div class="nav-links">
+    <a class="nav-link" href="crud-client.html">HTTP Client</a>
+    <a class="nav-link" href="token-tools.html">Token Tools</a>
+    <a class="nav-link" href="json-tools.html">JSON</a>
+    <a class="nav-link" href="regex-tester.html">Regex</a>
+    <a class="nav-link" href="encoders.html">Encoders</a>
+    <a class="nav-link" href="text-diff.html">Text Diff</a>
+    <a class="nav-link active" href="converters.html">Converters</a>
+  </div>
+</nav>
+
+<div class="tool-tabs-bar">
+  <button class="tool-tab active" onclick="switchTool('yaml', this)">YAML ↔ JSON</button>
+  <button class="tool-tab" onclick="switchTool('csv', this)">CSV ↔ JSON</button>
+</div>
+
+<div class="page-body">
+
+  <!-- YAML ↔ JSON -->
+  <div class="tool-panel active" id="panel-yaml">
+    <div class="btn-row">
+      <div class="mode-switcher">
+        <button class="mode-btn active" id="yaml-to-json-btn" onclick="setYamlMode('toJson')">YAML → JSON</button>
+        <button class="mode-btn" id="json-to-yaml-btn" onclick="setYamlMode('toYaml')">JSON → YAML</button>
+      </div>
+      <button class="btn-secondary" onclick="clearYaml()">Clear</button>
+    </div>
+    <div class="two-col">
+      <div class="col">
+        <div class="card stretch">
+          <div class="card-title" id="yaml-input-label">YAML Input</div>
+          <textarea id="yaml-input" placeholder="key: value&#10;list:&#10;  - item1&#10;  - item2" spellcheck="false" oninput="runYaml()"></textarea>
+          <div class="alert alert-err" id="yaml-err"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card stretch">
+          <div class="card-title" id="yaml-output-label">
+            JSON Output
+            <button class="output-copy" style="position:relative;top:auto;right:auto;" onclick="copyEl('yaml-output')">Copy</button>
+          </div>
+          <div class="output-area">
+            <div class="output-content" id="yaml-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CSV ↔ JSON -->
+  <div class="tool-panel" id="panel-csv">
+    <div class="btn-row">
+      <div class="mode-switcher">
+        <button class="mode-btn active" id="csv-to-json-btn" onclick="setCsvMode('toJson')">CSV → JSON</button>
+        <button class="mode-btn" id="json-to-csv-btn" onclick="setCsvMode('toCsv')">JSON → CSV</button>
+      </div>
+      <button class="btn-secondary" onclick="clearCsv()">Clear</button>
+      <span class="opt-sep">|</span>
+      <label class="opt-label" id="csv-header-wrap">
+        <input type="checkbox" id="csv-has-header" checked onchange="runCsv()"> first row is header
+      </label>
+      <label class="opt-label">
+        delimiter: <input type="text" id="csv-delimiter" value="," maxlength="1" oninput="runCsv()">
+      </label>
+    </div>
+    <div class="two-col">
+      <div class="col">
+        <div class="card stretch">
+          <div class="card-title" id="csv-input-label">CSV Input</div>
+          <textarea id="csv-input" placeholder="name,age,city&#10;Alice,30,Paris&#10;Bob,25,London" spellcheck="false" oninput="runCsv()"></textarea>
+          <div class="alert alert-err" id="csv-err"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card stretch">
+          <div class="card-title" id="csv-output-label">
+            JSON Output
+            <button class="output-copy" style="position:relative;top:auto;right:auto;" onclick="copyEl('csv-output')">Copy</button>
+          </div>
+          <div class="output-area">
+            <div class="output-content" id="csv-output"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function $(id) { return document.getElementById(id); }
+
+  function showToast(msg) {
+    let t = $('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-family:var(--mono);font-size:12px;padding:8px 18px;border-radius:8px;z-index:999;pointer-events:none;transition:opacity 0.3s;'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._to); t._to = setTimeout(() => t.style.opacity = '0', 1800);
+  }
+
+  function copyEl(id) {
+    const text = $(id).innerText || '';
+    navigator.clipboard.writeText(text.trim()).then(() => showToast('Copied!'));
+  }
+
+  function showErr(id, msg) { const e = $(id); e.textContent = msg; e.classList.add('show'); e.style.display = ''; }
+  function hideErr(id) { const e = $(id); e.classList.remove('show'); e.style.display = 'none'; }
+
+  function switchTool(name, btn) {
+    document.querySelectorAll('.tool-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tool-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    $('panel-' + name).classList.add('active');
+    save();
+  }
+
+  /* ── JSON syntax highlight ── */
+  function highlightJson(obj) {
+    const s = JSON.stringify(obj, null, 2);
+    return s.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, m => {
+      if (/^"/.test(m)) return /:$/.test(m) ? `<span style="color:#1d4ed8">${m}</span>` : `<span style="color:#15803d">${m}</span>`;
+      if (/true|false/.test(m)) return `<span style="color:#7c3aed">${m}</span>`;
+      if (/null/.test(m)) return `<span style="color:#999990">${m}</span>`;
+      return `<span style="color:#b45309">${m}</span>`;
+    });
+  }
+
+  /* ── YAML ↔ JSON ── */
+  let yamlMode = 'toJson';
+
+  function setYamlMode(mode) {
+    yamlMode = mode;
+    $('yaml-to-json-btn').classList.toggle('active', mode === 'toJson');
+    $('json-to-yaml-btn').classList.toggle('active', mode === 'toYaml');
+    $('yaml-input-label').textContent  = mode === 'toJson' ? 'YAML Input'  : 'JSON Input';
+    $('yaml-output-label').firstChild.textContent = mode === 'toJson' ? 'JSON Output' : 'YAML Output';
+    $('yaml-input').placeholder = mode === 'toJson'
+      ? 'key: value\nlist:\n  - item1\n  - item2'
+      : '{\n  "key": "value",\n  "list": ["item1", "item2"]\n}';
+    runYaml();
+    save();
+  }
+
+  function runYaml() {
+    hideErr('yaml-err');
+    const input = $('yaml-input').value.trim();
+    if (!input) { $('yaml-output').innerHTML = ''; return; }
+    try {
+      if (yamlMode === 'toJson') {
+        const obj = jsyaml.load(input);
+        $('yaml-output').innerHTML = highlightJson(obj);
+      } else {
+        const obj = JSON.parse(input);
+        $('yaml-output').textContent = jsyaml.dump(obj, { indent: 2 });
+      }
+    } catch(e) {
+      showErr('yaml-err', e.message);
+      $('yaml-output').innerHTML = '';
+    }
+  }
+
+  function clearYaml() {
+    $('yaml-input').value = '';
+    $('yaml-output').innerHTML = '';
+    hideErr('yaml-err');
+    save();
+  }
+
+  /* ── CSV ↔ JSON ── */
+  let csvMode = 'toJson';
+
+  function setCsvMode(mode) {
+    csvMode = mode;
+    $('csv-to-json-btn').classList.toggle('active', mode === 'toJson');
+    $('json-to-csv-btn').classList.toggle('active', mode === 'toCsv');
+    $('csv-input-label').textContent  = mode === 'toJson' ? 'CSV Input'  : 'JSON Input';
+    $('csv-output-label').firstChild.textContent = mode === 'toJson' ? 'JSON Output' : 'CSV Output';
+    $('csv-input').placeholder = mode === 'toJson'
+      ? 'name,age,city\nAlice,30,Paris\nBob,25,London'
+      : '[{"name":"Alice","age":30},{"name":"Bob","age":25}]';
+    $('csv-header-wrap').style.display = mode === 'toJson' ? '' : 'none';
+    runCsv();
+    save();
+  }
+
+  function parseCSV(text, delimiter, hasHeader) {
+    const rows = [];
+    let row = [], field = '', inQuote = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuote) {
+        if (c === '"' && text[i+1] === '"') { field += '"'; i++; }
+        else if (c === '"') { inQuote = false; }
+        else { field += c; }
+      } else if (c === '"') {
+        inQuote = true;
+      } else if (c === delimiter) {
+        row.push(field); field = '';
+      } else if (c === '\n' || (c === '\r' && text[i+1] === '\n')) {
+        if (c === '\r') i++;
+        row.push(field); field = '';
+        if (row.some(f => f !== '') || rows.length > 0) rows.push(row);
+        row = [];
+      } else {
+        field += c;
+      }
+    }
+    if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
+    const nonEmpty = rows.filter(r => r.some(f => f !== ''));
+    if (!nonEmpty.length) return [];
+    if (hasHeader) {
+      const headers = nonEmpty[0];
+      return nonEmpty.slice(1).map(r => {
+        const obj = {};
+        headers.forEach((h, i) => { obj[h] = r[i] !== undefined ? r[i] : ''; });
+        return obj;
+      });
+    }
+    return nonEmpty;
+  }
+
+  function jsonToCSV(data, delimiter) {
+    if (!Array.isArray(data)) throw new Error('Input must be a JSON array');
+    if (!data.length) return '';
+    function q(v) {
+      const s = String(v === null || v === undefined ? '' : v);
+      return (s.includes(delimiter) || s.includes('"') || s.includes('\n'))
+        ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }
+    if (typeof data[0] === 'object' && data[0] !== null && !Array.isArray(data[0])) {
+      const keys = [...new Set(data.flatMap(r => Object.keys(r)))];
+      return [keys.map(q).join(delimiter),
+        ...data.map(r => keys.map(k => q(r[k] !== undefined ? r[k] : '')).join(delimiter))
+      ].join('\n');
+    }
+    return data.map(r => (Array.isArray(r) ? r : [r]).map(q).join(delimiter)).join('\n');
+  }
+
+  function runCsv() {
+    hideErr('csv-err');
+    const input = $('csv-input').value.trim();
+    if (!input) { $('csv-output').innerHTML = ''; return; }
+    const delimiter = $('csv-delimiter').value || ',';
+    try {
+      if (csvMode === 'toJson') {
+        const hasHeader = $('csv-has-header').checked;
+        const result = parseCSV(input, delimiter, hasHeader);
+        $('csv-output').innerHTML = highlightJson(result);
+      } else {
+        const obj = JSON.parse(input);
+        $('csv-output').textContent = jsonToCSV(obj, delimiter);
+      }
+    } catch(e) {
+      showErr('csv-err', e.message);
+      $('csv-output').innerHTML = '';
+    }
+  }
+
+  function clearCsv() {
+    $('csv-input').value = '';
+    $('csv-output').innerHTML = '';
+    hideErr('csv-err');
+    save();
+  }
+
+  /* ── localStorage ── */
+  function save() {
+    const activeTab = document.querySelector('.tool-tab.active');
+    localStorage.setItem('conv_tab',      activeTab ? activeTab.textContent.trim() : '');
+    localStorage.setItem('conv_yaml_mode',yamlMode);
+    localStorage.setItem('conv_yaml_in',  $('yaml-input').value);
+    localStorage.setItem('conv_csv_mode', csvMode);
+    localStorage.setItem('conv_csv_in',   $('csv-input').value);
+    localStorage.setItem('conv_csv_delim',$('csv-delimiter').value);
+    localStorage.setItem('conv_csv_hdr',  $('csv-has-header').checked ? '1' : '0');
+  }
+
+  document.addEventListener('input', save);
+
+  function restore() {
+    const tab      = localStorage.getItem('conv_tab')       || '';
+    const yMode    = localStorage.getItem('conv_yaml_mode') || 'toJson';
+    const yIn      = localStorage.getItem('conv_yaml_in')   || '';
+    const cMode    = localStorage.getItem('conv_csv_mode')  || 'toJson';
+    const cIn      = localStorage.getItem('conv_csv_in')    || '';
+    const cDelim   = localStorage.getItem('conv_csv_delim') || ',';
+    const cHdr     = localStorage.getItem('conv_csv_hdr');
+
+    if (yMode !== 'toJson') setYamlMode(yMode); else setYamlMode('toJson');
+    if (yIn) { $('yaml-input').value = yIn; runYaml(); }
+
+    if (cDelim) $('csv-delimiter').value = cDelim;
+    if (cHdr !== null) $('csv-has-header').checked = cHdr === '1';
+    if (cMode !== 'toJson') setCsvMode(cMode); else setCsvMode('toJson');
+    if (cIn) { $('csv-input').value = cIn; runCsv(); }
+
+    if (tab === 'CSV ↔ JSON') {
+      const csvBtn = document.querySelectorAll('.tool-tab')[1];
+      if (csvBtn) switchTool('csv', csvBtn);
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+  else restore();
+</script>
+</body>
+</html>

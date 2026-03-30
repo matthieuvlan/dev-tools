@@ -142,6 +142,8 @@
     <a class="nav-link" href="json-tools.html">JSON</a>
     <a class="nav-link active" href="regex-tester.html">Regex</a>
     <a class="nav-link" href="encoders.html">Encoders</a>
+    <a class="nav-link" href="text-diff.html">Text Diff</a>
+    <a class="nav-link" href="converters.html">Converters</a>
   </div>
 </nav>
 
@@ -327,6 +329,31 @@
 
     runReplace();
   }
+
+  /* ── localStorage ── */
+  (function() {
+    function save() {
+      localStorage.setItem('rx_pattern', $('regex-input').value);
+      localStorage.setItem('rx_flags',   $('regex-flags').value);
+      localStorage.setItem('rx_test',    $('test-input').value);
+      localStorage.setItem('rx_replace', $('replace-input').value);
+    }
+    document.addEventListener('input', save);
+    function restore() {
+      const pattern = localStorage.getItem('rx_pattern') || '';
+      const flags   = localStorage.getItem('rx_flags')   || 'g';
+      const test    = localStorage.getItem('rx_test')    || '';
+      const replace = localStorage.getItem('rx_replace') || '';
+      if (pattern) $('regex-input').value = pattern;
+      $('regex-flags').value = flags;
+      syncBtnsFromInput();
+      if (test)    $('test-input').value = test;
+      if (replace) $('replace-input').value = replace;
+      if (pattern || test) runRegex();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+    else restore();
+  })();
 
   function runReplace() {
     const pattern     = $('regex-input').value;

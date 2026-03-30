@@ -605,6 +605,8 @@
     <a class="nav-link" href="json-tools.html">JSON</a>
     <a class="nav-link" href="regex-tester.html">Regex</a>
     <a class="nav-link" href="encoders.html">Encoders</a>
+    <a class="nav-link" href="text-diff.html">Text Diff</a>
+    <a class="nav-link" href="converters.html">Converters</a>
   </div>
 </nav>
 
@@ -932,13 +934,45 @@
     t._to = setTimeout(() => t.style.opacity = '0', 1800);
   }
 
+  /* ── localStorage ── */
+  (function() {
+    function save() {
+      const headers = [...document.querySelectorAll('.header-row')].map(row => ({
+        k: row.querySelector('.header-key').value,
+        v: row.querySelector('.header-val').value
+      }));
+      localStorage.setItem('crud_method',  document.getElementById('method').value);
+      localStorage.setItem('crud_url',     document.getElementById('url').value);
+      localStorage.setItem('crud_jwt',     document.getElementById('jwt-token').value);
+      localStorage.setItem('crud_body',    document.getElementById('body').value);
+      localStorage.setItem('crud_headers', JSON.stringify(headers));
+    }
+    document.addEventListener('input', save);
+    document.addEventListener('change', save);
+    new MutationObserver(save).observe(document.getElementById('headers-table'), { childList: true });
+    function restore() {
+      const method  = localStorage.getItem('crud_method')  || 'GET';
+      const url     = localStorage.getItem('crud_url')     || '';
+      const jwt     = localStorage.getItem('crud_jwt')     || '';
+      const body    = localStorage.getItem('crud_body')    || '';
+      const headers = JSON.parse(localStorage.getItem('crud_headers') || '[]');
+      document.getElementById('method').value = method;
+      document.getElementById('url').value    = url;
+      document.getElementById('jwt-token').value = jwt;
+      document.getElementById('body').value   = body;
+      headers.forEach(h => addHeader(h.k, h.v));
+      onMethodChange();
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+    else restore();
+  })();
+
   // Allow Ctrl+Enter to send
   document.addEventListener('keydown', e => {
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') sendRequest();
   });
 
-  // Init
-  onMethodChange();
+  // Init handled by localStorage restore (calls onMethodChange)
 </script>
 
 </body>

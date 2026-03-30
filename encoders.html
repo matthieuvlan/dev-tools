@@ -109,6 +109,8 @@
     <a class="nav-link" href="json-tools.html">JSON</a>
     <a class="nav-link" href="regex-tester.html">Regex</a>
     <a class="nav-link active" href="encoders.html">Encoders</a>
+    <a class="nav-link" href="text-diff.html">Text Diff</a>
+    <a class="nav-link" href="converters.html">Converters</a>
   </div>
 </nav>
 
@@ -350,6 +352,38 @@
   }
 
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ── localStorage ── */
+  (function() {
+    function save() {
+      const activeTab = document.querySelector('.tool-tab.active');
+      localStorage.setItem('enc_tab',      activeTab ? activeTab.textContent.trim() : '');
+      localStorage.setItem('enc_b64_mode', b64Mode);
+      localStorage.setItem('enc_b64_in',   $('b64-input').value);
+      localStorage.setItem('enc_url_mode', urlMode);
+      localStorage.setItem('enc_url_in',   $('url-input').value);
+    }
+    document.addEventListener('input', save);
+    const _st = window.switchTool;
+    window.switchTool = function(name, btn) { _st(name, btn); save(); };
+    function restore() {
+      const tab    = localStorage.getItem('enc_tab')      || '';
+      const bMode  = localStorage.getItem('enc_b64_mode') || 'encode';
+      const bIn    = localStorage.getItem('enc_b64_in')   || '';
+      const uMode  = localStorage.getItem('enc_url_mode') || 'encode';
+      const uIn    = localStorage.getItem('enc_url_in')   || '';
+      setB64Mode(bMode);
+      if (bIn) { $('b64-input').value = bIn; b64Live(); }
+      setUrlMode(uMode);
+      if (uIn) { $('url-input').value = uIn; urlLive(); }
+      if (tab === 'URL') {
+        const btn = document.querySelectorAll('.tool-tab')[1];
+        if (btn) window.switchTool('url', btn);
+      }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+    else restore();
+  })();
 
   function swapUrl() {
     const out = $('url-output').innerText.trim();

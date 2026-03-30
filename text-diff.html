@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Diff — Dev Tools</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0f0ee;
+    --surface3: #e8e8e5;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --text2: #555550;
+    --text3: #999990;
+    --accent: #2563eb;
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.08);
+    --radius: 8px;
+    --radius-lg: 12px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  .topnav { display: flex; align-items: center; gap: 24px; padding: 0 24px; height: 48px; border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0; }
+  .nav-brand { font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--accent); letter-spacing: 0.08em; display: flex; align-items: center; gap: 8px; margin-right: 8px; }
+  .nav-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  .nav-links { display: flex; gap: 2px; }
+  .nav-link { font-family: var(--mono); font-size: 11px; font-weight: 500; color: var(--text3); text-decoration: none; padding: 6px 12px; border-radius: var(--radius); transition: color 0.15s, background 0.15s; letter-spacing: 0.03em; }
+  .nav-link:hover { color: var(--text); background: var(--surface2); }
+  .nav-link.active { color: var(--text); background: var(--surface2); }
+
+  .page-body { flex: 1; padding: 24px; display: flex; flex-direction: column; gap: 16px; height: calc(100vh - 48px); overflow: hidden; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .card.stretch { flex: 1; overflow: hidden; }
+  .card-title { font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+
+  textarea { font-family: var(--mono); font-size: 12px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text); outline: none; transition: border-color 0.15s; width: 100%; padding: 12px; resize: none; line-height: 1.7; flex: 1; min-height: 100px; }
+  textarea:focus { border-color: var(--accent); }
+  textarea::placeholder { color: var(--text3); }
+
+  .btn-secondary { font-family: var(--mono); font-size: 11px; background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius); color: var(--text2); padding: 0 12px; height: 30px; cursor: pointer; transition: color 0.15s; white-space: nowrap; }
+  .btn-secondary:hover { color: var(--text); }
+  .btn-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; flex-shrink: 0; }
+
+  .output-area { position: relative; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); flex: 1; overflow-y: auto; overflow-x: auto; }
+  .output-content { font-family: var(--mono); font-size: 12px; line-height: 1.75; padding: 8px 0; }
+  .output-copy { position: absolute; top: 8px; right: 8px; font-family: var(--mono); font-size: 10px; font-weight: 600; background: var(--surface3); border: 1px solid var(--border2); border-radius: 6px; color: var(--text3); padding: 3px 8px; cursor: pointer; transition: color 0.15s; z-index: 1; }
+  .output-copy:hover { color: var(--text); }
+
+  .diff-line { display: flex; padding: 0 8px; }
+  .diff-ln { font-size: 11px; color: var(--text3); min-width: 40px; text-align: right; padding-right: 12px; user-select: none; flex-shrink: 0; line-height: 1.75; }
+  .diff-marker { min-width: 16px; flex-shrink: 0; line-height: 1.75; font-weight: 600; }
+  .diff-text { white-space: pre; flex: 1; line-height: 1.75; }
+
+  .diff-add { background: rgba(22,163,74,0.07); }
+  .diff-add .diff-marker { color: var(--green); }
+  .diff-add .diff-text { color: #15803d; }
+
+  .diff-del { background: rgba(220,38,38,0.06); }
+  .diff-del .diff-marker { color: var(--red); }
+  .diff-del .diff-text { color: #b91c1c; text-decoration: line-through; opacity: 0.75; }
+
+  .diff-eq .diff-marker { color: transparent; }
+  .diff-eq .diff-text { color: var(--text2); }
+
+  .stat-pill { font-family: var(--mono); font-size: 11px; padding: 2px 9px; border-radius: 20px; font-weight: 600; }
+  .pill-add { background: var(--green-dim); color: var(--green); }
+  .pill-del { background: var(--red-dim); color: var(--red); }
+  .pill-eq  { background: var(--surface2); color: var(--text3); border: 1px solid var(--border2); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+  @media (max-width: 700px) { .two-col { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-brand"><span class="nav-dot"></span>DEV TOOLS</div>
+  <div class="nav-links">
+    <a class="nav-link" href="crud-client.html">HTTP Client</a>
+    <a class="nav-link" href="token-tools.html">Token Tools</a>
+    <a class="nav-link" href="json-tools.html">JSON</a>
+    <a class="nav-link" href="regex-tester.html">Regex</a>
+    <a class="nav-link" href="encoders.html">Encoders</a>
+    <a class="nav-link active" href="text-diff.html">Text Diff</a>
+    <a class="nav-link" href="converters.html">Converters</a>
+  </div>
+</nav>
+
+<div class="page-body">
+
+  <div class="two-col" style="flex: 0 0 auto;">
+    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+      <div class="card-title">Text A — original</div>
+      <textarea id="text-a" placeholder="Paste the original text here…" spellcheck="false" oninput="runDiff()"></textarea>
+    </div>
+    <div class="card" style="overflow: hidden; display: flex; flex-direction: column;">
+      <div class="card-title">Text B — modified</div>
+      <textarea id="text-b" placeholder="Paste the modified text here…" spellcheck="false" oninput="runDiff()"></textarea>
+    </div>
+  </div>
+
+  <div class="btn-row">
+    <button class="btn-secondary" onclick="swapAB()">⇅ Swap A / B</button>
+    <button class="btn-secondary" onclick="clearAll()">Clear</button>
+    <span class="stat-pill pill-add" id="stat-add" style="display:none;"></span>
+    <span class="stat-pill pill-del" id="stat-del" style="display:none;"></span>
+    <span class="stat-pill pill-eq"  id="stat-eq"  style="display:none;"></span>
+  </div>
+
+  <div class="card stretch">
+    <div class="card-title">
+      Diff
+      <button class="output-copy" style="position:relative;top:auto;right:auto;" onclick="copyDiff()">Copy</button>
+    </div>
+    <div class="output-area">
+      <div class="output-content" id="diff-output">
+        <span style="padding:0 12px;color:var(--text3)">Paste text in both panels above — diff appears here automatically.</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  function $(id) { return document.getElementById(id); }
+
+  function showToast(msg) {
+    let t = $('toast');
+    if (!t) { t = document.createElement('div'); t.id = 'toast'; t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-family:var(--mono);font-size:12px;padding:8px 18px;border-radius:8px;z-index:999;pointer-events:none;transition:opacity 0.3s;'; document.body.appendChild(t); }
+    t.textContent = msg; t.style.opacity = '1'; clearTimeout(t._to); t._to = setTimeout(() => t.style.opacity = '0', 1800);
+  }
+
+  function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ── LCS diff algorithm ── */
+  function computeDiff(a, b) {
+    const m = a.length, n = b.length;
+    // Fallback for very large inputs to avoid memory issues
+    if (m * n > 4000000) {
+      const diff = [];
+      const len = Math.max(m, n);
+      for (let i = 0; i < len; i++) {
+        if (i >= m) diff.push({ type: 'add', val: b[i] });
+        else if (i >= n) diff.push({ type: 'del', val: a[i] });
+        else if (a[i] === b[i]) diff.push({ type: 'eq', val: a[i] });
+        else { diff.push({ type: 'del', val: a[i] }); diff.push({ type: 'add', val: b[i] }); }
+      }
+      return diff;
+    }
+    const dp = [];
+    for (let i = 0; i <= m; i++) dp.push(new Int32Array(n + 1));
+    for (let i = m - 1; i >= 0; i--) {
+      for (let j = n - 1; j >= 0; j--) {
+        if (a[i] === b[j]) dp[i][j] = dp[i+1][j+1] + 1;
+        else dp[i][j] = Math.max(dp[i+1][j], dp[i][j+1]);
+      }
+    }
+    const diff = [];
+    let i = 0, j = 0;
+    while (i < m || j < n) {
+      if (i < m && j < n && a[i] === b[j]) {
+        diff.push({ type: 'eq', val: a[i] }); i++; j++;
+      } else if (j < n && (i >= m || dp[i][j+1] >= dp[i+1][j])) {
+        diff.push({ type: 'add', val: b[j] }); j++;
+      } else {
+        diff.push({ type: 'del', val: a[i] }); i++;
+      }
+    }
+    return diff;
+  }
+
+  function runDiff() {
+    save();
+    const a = $('text-a').value;
+    const b = $('text-b').value;
+
+    if (!a && !b) {
+      $('diff-output').innerHTML = '<span style="padding:0 12px;color:var(--text3)">Paste text in both panels above — diff appears here automatically.</span>';
+      ['stat-add','stat-del','stat-eq'].forEach(id => $(id).style.display = 'none');
+      return;
+    }
+
+    const linesA = a ? a.split('\n') : [];
+    const linesB = b ? b.split('\n') : [];
+    const diff = computeDiff(linesA, linesB);
+
+    let added = 0, deleted = 0, equal = 0;
+    diff.forEach(d => { if (d.type === 'add') added++; else if (d.type === 'del') deleted++; else equal++; });
+
+    const showStat = (id, text, show) => { $(id).textContent = text; $(id).style.display = show ? '' : 'none'; };
+    showStat('stat-add', '+' + added + ' added',     added > 0);
+    showStat('stat-del', '−' + deleted + ' removed', deleted > 0);
+    showStat('stat-eq',  equal + ' unchanged',       equal > 0);
+
+    if (added === 0 && deleted === 0) {
+      $('diff-output').innerHTML = '<span style="padding:0 12px;color:var(--green)">Texts are identical.</span>';
+      return;
+    }
+
+    let lnA = 0, lnB = 0;
+    $('diff-output').innerHTML = diff.map(d => {
+      if (d.type === 'eq') {
+        lnA++; lnB++;
+        return `<div class="diff-line diff-eq"><span class="diff-ln">${lnB}</span><span class="diff-marker"> </span><span class="diff-text">${esc(d.val)}</span></div>`;
+      } else if (d.type === 'add') {
+        lnB++;
+        return `<div class="diff-line diff-add"><span class="diff-ln">${lnB}</span><span class="diff-marker">+</span><span class="diff-text">${esc(d.val)}</span></div>`;
+      } else {
+        lnA++;
+        return `<div class="diff-line diff-del"><span class="diff-ln">${lnA}</span><span class="diff-marker">−</span><span class="diff-text">${esc(d.val)}</span></div>`;
+      }
+    }).join('');
+  }
+
+  function copyDiff() {
+    const lines = [...document.querySelectorAll('.diff-line')].map(el => {
+      const marker = el.querySelector('.diff-marker').textContent.trim();
+      const text = el.querySelector('.diff-text').textContent;
+      return (marker || ' ') + ' ' + text;
+    });
+    navigator.clipboard.writeText(lines.join('\n')).then(() => showToast('Copied!'));
+  }
+
+  function swapAB() {
+    const a = $('text-a').value;
+    $('text-a').value = $('text-b').value;
+    $('text-b').value = a;
+    runDiff();
+  }
+
+  function clearAll() {
+    $('text-a').value = ''; $('text-b').value = '';
+    $('diff-output').innerHTML = '<span style="padding:0 12px;color:var(--text3)">Paste text in both panels above — diff appears here automatically.</span>';
+    ['stat-add','stat-del','stat-eq'].forEach(id => $(id).style.display = 'none');
+    save();
+  }
+
+  /* ── localStorage ── */
+  function save() {
+    localStorage.setItem('tdiff_a', $('text-a').value);
+    localStorage.setItem('tdiff_b', $('text-b').value);
+  }
+
+  function restore() {
+    const a = localStorage.getItem('tdiff_a') || '';
+    const b = localStorage.getItem('tdiff_b') || '';
+    if (a) $('text-a').value = a;
+    if (b) $('text-b').value = b;
+    if (a || b) runDiff();
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+  else restore();
+</script>
+</body>
+</html>

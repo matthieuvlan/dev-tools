@@ -115,6 +115,8 @@
     <a class="nav-link active" href="json-tools.html">JSON</a>
     <a class="nav-link" href="regex-tester.html">Regex</a>
     <a class="nav-link" href="encoders.html">Encoders</a>
+    <a class="nav-link" href="text-diff.html">Text Diff</a>
+    <a class="nav-link" href="converters.html">Converters</a>
   </div>
 </nav>
 
@@ -269,6 +271,35 @@
   }
 
   function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  /* ── localStorage ── */
+  (function() {
+    function save() {
+      const activeTab = document.querySelector('.tool-tab.active');
+      localStorage.setItem('json_tab', activeTab ? activeTab.textContent.trim() : '');
+      localStorage.setItem('json_fmt', $('fmt-input').value);
+      localStorage.setItem('json_da',  $('diff-a').value);
+      localStorage.setItem('json_db',  $('diff-b').value);
+    }
+    document.addEventListener('input', save);
+    const _st = window.switchTool;
+    window.switchTool = function(name, btn) { _st(name, btn); save(); };
+    function restore() {
+      const tab = localStorage.getItem('json_tab') || '';
+      const fmt = localStorage.getItem('json_fmt') || '';
+      const da  = localStorage.getItem('json_da')  || '';
+      const db  = localStorage.getItem('json_db')  || '';
+      if (fmt) { $('fmt-input').value = fmt; liveFormat(); }
+      if (da)  $('diff-a').value = da;
+      if (db)  $('diff-b').value = db;
+      if (tab === 'Diff') {
+        const btn = document.querySelectorAll('.tool-tab')[1];
+        if (btn) window.switchTool('diff', btn);
+      }
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', restore);
+    else restore();
+  })();
 
   function renderDiff(a, b, depth) {
     const indent = '  '.repeat(depth);
