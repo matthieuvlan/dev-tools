@@ -485,6 +485,118 @@
 
   ::-webkit-scrollbar { width: 5px; height: 5px; }
   ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+
+  /* ── Build mode ── */
+  .build-tabs { display: flex; gap: 4px; margin-bottom: 16px; }
+  .build-tab {
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border2);
+    background: var(--surface2);
+    color: var(--text3);
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .build-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .form-input, .form-select, .form-textarea {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 7px 10px;
+    width: 100%;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select { cursor: pointer; }
+  .form-textarea { resize: vertical; min-height: 90px; line-height: 1.6; }
+
+  .form-row { display: flex; gap: 8px; align-items: flex-start; }
+  .form-row .form-group { flex: 1; min-width: 0; }
+
+  .kv-builder { display: flex; flex-direction: column; gap: 6px; }
+  .kv-builder-row { display: flex; gap: 6px; align-items: center; }
+  .kv-builder-row .form-input { flex: 1; min-width: 0; }
+  .kv-del-btn {
+    font-size: 16px;
+    line-height: 1;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text3);
+    width: 30px;
+    height: 30px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  .kv-del-btn:hover { color: var(--red); border-color: var(--red); }
+
+  .add-kv-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: none;
+    border: 1px dashed var(--border2);
+    border-radius: var(--radius);
+    color: var(--text3);
+    padding: 6px 12px;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    transition: color 0.15s, border-color 0.15s;
+    letter-spacing: 0.03em;
+  }
+  .add-kv-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  .build-form { display: flex; flex-direction: column; gap: 14px; }
+  .build-actions { display: flex; gap: 8px; margin-top: 4px; }
+
+  .yaml-editor-area {
+    font-family: var(--mono);
+    font-size: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text);
+    padding: 12px 14px;
+    width: 100%;
+    min-height: 420px;
+    resize: vertical;
+    outline: none;
+    line-height: 1.7;
+    transition: border-color 0.15s;
+  }
+  .yaml-editor-area:focus { border-color: var(--accent); }
+
+  .section-label {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
 </style>
 </head>
 <body>
@@ -495,6 +607,8 @@
   <div class="topbar-actions">
     <label class="btn-secondary" for="yaml-input">Upload YAML</label>
     <input type="file" id="yaml-input" accept=".yaml,.yml,.txt" onchange="handleFileInput(this)">
+    <button class="btn-secondary" onclick="startBuild(null)">＋ New Test</button>
+    <button class="btn-secondary" id="save-yaml-btn" onclick="saveYAML()" disabled>Save YAML</button>
     <button class="btn-primary" id="run-all-btn" onclick="runAll()" disabled>▶ Run All</button>
     <div class="summary" id="summary"></div>
   </div>
@@ -529,6 +643,12 @@ let tests = [];
 let vars  = {};
 let selectedIdx = null;
 let isRunning   = false;
+
+// Build mode state
+let viewMode    = 'view';  // 'view' | 'build'
+let editingIdx  = null;    // null = new, number = editing existing
+let builderTab  = 'form';  // 'form' | 'yaml'
+let formHeaders = [];      // [{key:'', val:''}]
 
 // ── File loading ───────────────────────────────────────
 
@@ -690,7 +810,8 @@ function renderSidebar() {
       <div class="sidebar-empty">
         <div class="sidebar-empty-icon">⇅</div>
         <div class="sidebar-empty-title">No tests loaded</div>
-        <div class="sidebar-empty-sub">Upload a YAML file or drop it here</div>
+        <div class="sidebar-empty-sub">Upload a YAML file, drop it here, or build one from scratch.</div>
+        <button class="btn-secondary" style="margin-top:4px" onclick="startBuild(null)">＋ Build a test</button>
       </div>`;
     return;
   }
@@ -698,7 +819,10 @@ function renderSidebar() {
   el.innerHTML = `
     <div class="sidebar-header">
       <span class="sidebar-title">Test Cases</span>
-      <span class="test-count">${tests.length} test${tests.length !== 1 ? 's' : ''}</span>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="test-count">${tests.length} test${tests.length !== 1 ? 's' : ''}</span>
+        <button class="run-btn" title="New test" onclick="startBuild(null)" style="width:auto;padding:0 7px;font-size:13px">＋</button>
+      </div>
     </div>
     <div class="test-list" id="test-list"></div>`;
 
@@ -752,6 +876,11 @@ async function runSingle(i) {
 function renderDetail() {
   const el = document.getElementById('detail');
 
+  if (viewMode === 'build') {
+    renderBuildPanel(el);
+    return;
+  }
+
   if (!tests.length) {
     el.innerHTML = `
       <div class="detail-empty">
@@ -778,6 +907,10 @@ function renderDetail() {
       <span class="method-badge m-${t.method}" style="font-size:11px;padding:3px 8px">${t.method}</span>
       <span class="detail-name">${esc(t.name)}</span>
       ${statusBadge(t)}
+      <div style="margin-left:auto;display:flex;gap:6px">
+        <button class="btn-secondary" style="height:28px;font-size:10px;padding:0 10px" onclick="startBuild(${selectedIdx})">Edit</button>
+        <button class="btn-secondary" style="height:28px;font-size:10px;padding:0 10px;color:var(--red)" onclick="deleteTest(${selectedIdx})">Delete</button>
+      </div>
     </div>`;
 
   // Request card
@@ -894,6 +1027,7 @@ function statusBadge(t) {
 
 function updateRunAllBtn() {
   document.getElementById('run-all-btn').disabled = tests.length === 0;
+  document.getElementById('save-yaml-btn').disabled = tests.length === 0;
 }
 
 function updateSummary() {
@@ -995,6 +1129,250 @@ function exampleYAMLHighlighted() {
       : `<span class="yaml-str">${esc(v)}</span>`;
     return `${key}: ${val}`;
   }).join('\n');
+}
+
+// ── Build mode ─────────────────────────────────────────
+
+function startBuild(idx) {
+  editingIdx = idx;
+  viewMode   = 'build';
+  builderTab = 'form';
+  if (idx !== null) {
+    const t = tests[idx];
+    formHeaders = Object.entries(t.headers || {}).map(([key, val]) => ({ key, val: String(val) }));
+  } else {
+    formHeaders = [];
+  }
+  renderDetail();
+}
+
+function cancelBuild() {
+  viewMode   = 'view';
+  editingIdx = null;
+  renderDetail();
+}
+
+function switchBuilderTab(tab) {
+  // Persist current form header DOM values before switching
+  if (builderTab === 'form') syncFormHeadersFromDOM();
+  builderTab = tab;
+  renderDetail();
+}
+
+function syncFormHeadersFromDOM() {
+  formHeaders = formHeaders.map((_, i) => ({
+    key: document.getElementById(`fh-key-${i}`)?.value ?? '',
+    val: document.getElementById(`fh-val-${i}`)?.value ?? '',
+  }));
+}
+
+function addFormHeader() {
+  syncFormHeadersFromDOM();
+  formHeaders.push({ key: '', val: '' });
+  renderDetail();
+}
+
+function removeFormHeader(i) {
+  syncFormHeadersFromDOM();
+  formHeaders.splice(i, 1);
+  renderDetail();
+}
+
+function saveFormTest() {
+  syncFormHeadersFromDOM();
+
+  const name   = document.getElementById('f-name').value.trim();
+  const method = document.getElementById('f-method').value;
+  const url    = document.getElementById('f-url').value.trim();
+
+  const headers = {};
+  formHeaders.forEach(({ key, val }) => { if (key.trim()) headers[key.trim()] = val; });
+
+  const bodyRaw = document.getElementById('f-body').value.trim();
+  let body;
+  if (bodyRaw && !['GET', 'HEAD'].includes(method)) {
+    try { body = JSON.parse(bodyRaw); } catch (_) { body = bodyRaw; }
+  }
+
+  const statusRaw = document.getElementById('f-expect-status').value.trim();
+  const expect    = statusRaw ? { status: parseInt(statusRaw, 10) } : {};
+
+  const test = { name: name || 'Untitled', method, url, headers, expect, _status: 'pending', _result: null };
+  if (body !== undefined) test.body = body;
+
+  const wasEditing = editingIdx !== null;
+  if (wasEditing) {
+    tests[editingIdx] = test;
+    selectedIdx = editingIdx;
+  } else {
+    tests.push(test);
+    selectedIdx = tests.length - 1;
+  }
+
+  viewMode   = 'view';
+  editingIdx = null;
+  renderSidebar();
+  // Re-attach click handlers after renderSidebar rebuilt the DOM
+  tests.forEach((_, i) => {
+    const row = document.getElementById(`row-${i}`);
+    if (row) row.addEventListener('click', () => selectTest(i));
+  });
+  renderDetail();
+  updateRunAllBtn();
+  updateSummary();
+  showToast(wasEditing ? 'Test updated.' : 'Test added.');
+}
+
+function deleteTest(i) {
+  tests.splice(i, 1);
+  if (selectedIdx >= tests.length) selectedIdx = tests.length ? tests.length - 1 : null;
+  viewMode = 'view';
+  renderSidebar();
+  tests.forEach((_, j) => {
+    const row = document.getElementById(`row-${j}`);
+    if (row) row.addEventListener('click', () => selectTest(j));
+  });
+  renderDetail();
+  updateRunAllBtn();
+  updateSummary();
+  showToast('Test deleted.');
+}
+
+function applyYAMLFromEditor() {
+  const text = document.getElementById('yaml-editor-area').value;
+  viewMode   = 'view';
+  editingIdx = null;
+  parseYAML(text);
+  showToast('YAML applied.');
+}
+
+function renderBuildPanel(el) {
+  const isEdit    = editingIdx !== null;
+  const title     = isEdit ? `Edit — ${esc(tests[editingIdx].name)}` : 'New Test';
+  const tabForm   = builderTab === 'form';
+
+  let inner = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+      <span style="font-size:15px;font-weight:500;color:var(--text)">${title}</span>
+      <div class="build-tabs">
+        <button class="build-tab${tabForm ? ' active' : ''}" onclick="switchBuilderTab('form')">Form</button>
+        <button class="build-tab${!tabForm ? ' active' : ''}" onclick="switchBuilderTab('yaml')">YAML</button>
+      </div>
+    </div>`;
+
+  if (tabForm) {
+    inner += renderBuildForm();
+  } else {
+    inner += renderYAMLEditor();
+  }
+
+  el.innerHTML = inner;
+}
+
+function renderBuildForm() {
+  const t = editingIdx !== null ? tests[editingIdx] : null;
+  const v = field => t ? esc(String(t[field] ?? '')) : '';
+
+  const bodyVal = t && t.body !== undefined
+    ? esc(typeof t.body === 'object' ? JSON.stringify(t.body, null, 2) : String(t.body))
+    : '';
+  const expectStatusVal = t && t.expect && t.expect.status !== undefined ? t.expect.status : '';
+
+  const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'];
+  const selectedMethod = t ? t.method : 'GET';
+  const methodOptions  = methods.map(m =>
+    `<option${m === selectedMethod ? ' selected' : ''}>${m}</option>`
+  ).join('');
+
+  const headersHTML = formHeaders.length
+    ? formHeaders.map((h, i) => `
+      <div class="kv-builder-row">
+        <input class="form-input" id="fh-key-${i}" placeholder="Header name" value="${esc(h.key)}">
+        <input class="form-input" id="fh-val-${i}" placeholder="Value" value="${esc(h.val)}">
+        <button class="kv-del-btn" onclick="removeFormHeader(${i})" title="Remove">×</button>
+      </div>`).join('')
+    : '';
+
+  return `<div class="card build-form">
+    <div class="form-row">
+      <div class="form-group" style="flex:2">
+        <label class="form-label">Name</label>
+        <input class="form-input" id="f-name" placeholder="e.g. Get users" value="${v('name')}">
+      </div>
+      <div class="form-group" style="flex:0 0 110px">
+        <label class="form-label">Method</label>
+        <select class="form-select" id="f-method">${methodOptions}</select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">URL</label>
+      <input class="form-input" id="f-url" placeholder="https://api.example.com/users" value="${v('url')}">
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Headers</label>
+      <div class="kv-builder" id="fh-list">${headersHTML}</div>
+      <button class="add-kv-btn" onclick="addFormHeader()" style="margin-top:6px">＋ Add header</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Body (JSON or plain text — ignored for GET/HEAD)</label>
+      <textarea class="form-textarea" id="f-body" placeholder='{"key": "value"}'>${bodyVal}</textarea>
+    </div>
+
+    <div class="form-group" style="max-width:160px">
+      <label class="form-label">Expected status</label>
+      <input class="form-input" id="f-expect-status" type="number" placeholder="200" value="${expectStatusVal}">
+    </div>
+
+    <div class="build-actions">
+      <button class="btn-primary" onclick="saveFormTest()">${editingIdx !== null ? 'Save changes' : 'Add test'}</button>
+      <button class="btn-secondary" onclick="cancelBuild()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+function renderYAMLEditor() {
+  const yaml = testsToYAML();
+  return `<div class="card" style="gap:12px">
+    <div style="font-family:var(--mono);font-size:10px;font-weight:600;color:var(--text3);letter-spacing:.08em;text-transform:uppercase">
+      Edit full suite YAML — includes variables and all tests
+    </div>
+    <textarea class="yaml-editor-area" id="yaml-editor-area" spellcheck="false">${esc(yaml)}</textarea>
+    <div class="build-actions">
+      <button class="btn-primary" onclick="applyYAMLFromEditor()">Apply</button>
+      <button class="btn-secondary" onclick="cancelBuild()">Cancel</button>
+    </div>
+  </div>`;
+}
+
+// ── Save / export ──────────────────────────────────────
+
+function testsToYAML() {
+  const obj = {};
+  if (Object.keys(vars).length) obj.variables = vars;
+  obj.tests = tests.map(t => {
+    const out = { name: t.name, method: t.method, url: t.url };
+    if (t.headers && Object.keys(t.headers).length) out.headers = t.headers;
+    if (t.body !== undefined) out.body = t.body;
+    if (t.expect && Object.keys(t.expect).length) out.expect = t.expect;
+    return out;
+  });
+  return jsyaml.dump(obj, { indent: 2, lineWidth: -1 });
+}
+
+function saveYAML() {
+  if (!tests.length) return;
+  const yaml  = testsToYAML();
+  const blob  = new Blob([yaml], { type: 'text/yaml' });
+  const url   = URL.createObjectURL(blob);
+  const a     = document.createElement('a');
+  a.href      = url;
+  a.download  = 'api-tests.yaml';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Saved as api-tests.yaml');
 }
 
 // ── Init ───────────────────────────────────────────────
