@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API Test Runner</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/js-yaml@4.1.0/dist/js-yaml.min.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f3;
+    --surface: #ffffff;
+    --surface2: #f0f0ee;
+    --surface3: #e8e8e5;
+    --border: rgba(0,0,0,0.07);
+    --border2: rgba(0,0,0,0.12);
+    --text: #1a1a1a;
+    --text2: #555550;
+    --text3: #999990;
+    --accent: #2563eb;
+    --accent-dim: rgba(37,99,235,0.08);
+    --green: #16a34a;
+    --green-dim: rgba(22,163,74,0.08);
+    --amber: #b45309;
+    --amber-dim: rgba(180,83,9,0.08);
+    --red: #dc2626;
+    --red-dim: rgba(220,38,38,0.08);
+    --purple: #7c3aed;
+    --radius: 8px;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Topbar ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 20px;
+    height: 52px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+
+  .brand {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-right: 8px;
+  }
+
+  .brand-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+
+  .topbar-actions { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+
+  .btn-primary {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    padding: 0 18px;
+    height: 34px;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+  }
+  .btn-primary:hover:not(:disabled) { opacity: 0.88; }
+  .btn-primary:disabled { opacity: 0.4; cursor: default; }
+
+  .btn-secondary {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    border-radius: var(--radius);
+    color: var(--text2);
+    padding: 0 14px;
+    height: 34px;
+    cursor: pointer;
+    letter-spacing: 0.03em;
+    transition: color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .btn-secondary:hover { color: var(--text); }
+
+  #yaml-input { display: none; }
+
+  .summary {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+    padding: 4px 10px;
+    border-radius: 6px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .summary.show { display: block; }
+
+  /* ── Main layout ── */
+  .main {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 320px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 12px 16px 10px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .sidebar-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .test-count {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+  }
+
+  .test-list { overflow-y: auto; flex: 1; }
+
+  .test-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: background 0.1s;
+    user-select: none;
+  }
+  .test-row:hover { background: var(--surface2); }
+  .test-row.active { background: var(--accent-dim); }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .dot-pending  { background: var(--surface3); border: 1.5px solid var(--text3); }
+  .dot-running  { background: var(--amber); animation: pulse 0.8s ease-in-out infinite; }
+  .dot-pass     { background: var(--green); }
+  .dot-fail     { background: var(--red); }
+
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+  .method-badge {
+    font-family: var(--mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    padding: 2px 5px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    min-width: 42px;
+    text-align: center;
+  }
+  .m-GET     { background: var(--accent-dim);              color: var(--accent); }
+  .m-POST    { background: var(--green-dim);               color: var(--green);  }
+  .m-PUT     { background: var(--amber-dim);               color: var(--amber);  }
+  .m-PATCH   { background: rgba(124,58,237,0.08);          color: var(--purple); }
+  .m-DELETE  { background: var(--red-dim);                 color: var(--red);    }
+  .m-HEAD,
+  .m-OPTIONS { background: var(--surface3);                color: var(--text3);  }
+
+  .test-info { flex: 1; min-width: 0; }
+
+  .test-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .test-url {
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text3);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+  }
+
+  .run-btn {
+    font-family: var(--mono);
+    font-size: 11px;
+    background: none;
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text3);
+    width: 26px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+  }
+  .run-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-dim); }
+  .run-btn:disabled { opacity: 0.3; cursor: default; }
+
+  /* Empty sidebar state */
+  .sidebar-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 32px 24px;
+    gap: 12px;
+    text-align: center;
+  }
+
+  .sidebar-empty-icon {
+    font-size: 28px;
+    color: var(--text3);
+    opacity: 0.5;
+  }
+
+  .sidebar-empty-title {
+    font-family: var(--mono);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.06em;
+  }
+
+  .sidebar-empty-sub {
+    font-size: 12px;
+    color: var(--text3);
+    line-height: 1.6;
+  }
+
+  /* ── Detail panel ── */
+  .detail {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    background: var(--bg);
+  }
+
+  /* Empty detail state */
+  .detail-empty {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+  }
+
+  .example-yaml {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 24px;
+    max-width: 480px;
+    width: 100%;
+  }
+
+  .example-yaml pre {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.8;
+    color: var(--text2);
+    white-space: pre-wrap;
+  }
+
+  .yaml-comment { color: var(--text3); }
+  .yaml-key     { color: var(--accent); }
+  .yaml-str     { color: var(--green); }
+  .yaml-num     { color: var(--amber); }
+
+  /* Cards */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .card-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .detail-heading {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .detail-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  /* KV */
+  .kv { display: grid; grid-template-columns: 130px 1fr; gap: 5px 12px; align-items: start; }
+  .kv-key { font-family: var(--mono); font-size: 11px; color: var(--text3); font-weight: 500; padding-top: 1px; }
+  .kv-val { font-family: var(--mono); font-size: 12px; color: var(--text); word-break: break-all; line-height: 1.6; }
+
+  /* Status badge */
+  .badge {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+  .badge-green  { background: var(--green-dim); color: var(--green); }
+  .badge-amber  { background: var(--amber-dim); color: var(--amber); }
+  .badge-red    { background: var(--red-dim);   color: var(--red);   }
+  .badge-blue   { background: var(--accent-dim); color: var(--accent); }
+  .badge-gray   { background: var(--surface3);  color: var(--text3); }
+
+  /* Code / body display */
+  .code-block {
+    font-family: var(--mono);
+    font-size: 11px;
+    line-height: 1.7;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    overflow-x: auto;
+    max-height: 320px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text);
+  }
+
+  .json-key  { color: var(--accent); }
+  .json-str  { color: var(--green); }
+  .json-num  { color: var(--amber); }
+  .json-bool { color: var(--purple); }
+  .json-null { color: var(--text3); }
+
+  /* Response result row */
+  .result-meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .latency {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text3);
+  }
+
+  .expect-note {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--red);
+  }
+
+  /* Headers table */
+  .headers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .header-row {
+    display: flex;
+    gap: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+  }
+
+  .header-key { color: var(--accent); min-width: 160px; flex-shrink: 0; }
+  .header-val { color: var(--text2); word-break: break-all; }
+
+  /* Copy button */
+  .copy-btn {
+    font-family: var(--mono);
+    font-size: 10px;
+    font-weight: 600;
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: 6px;
+    color: var(--text3);
+    padding: 3px 8px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); }
+
+  /* Drag-over state */
+  .sidebar.drag-over { background: var(--accent-dim); }
+
+  /* Toast */
+  #toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--text);
+    color: #fff;
+    font-family: var(--mono);
+    font-size: 12px;
+    padding: 8px 18px;
+    border-radius: var(--radius);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+    z-index: 999;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-thumb { background: var(--surface3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- ── Topbar ── -->
+<div class="topbar">
+  <div class="brand"><span class="brand-dot"></span>API TEST RUNNER</div>
+  <div class="topbar-actions">
+    <label class="btn-secondary" for="yaml-input">Upload YAML</label>
+    <input type="file" id="yaml-input" accept=".yaml,.yml,.txt" onchange="handleFileInput(this)">
+    <button class="btn-primary" id="run-all-btn" onclick="runAll()" disabled>▶ Run All</button>
+    <div class="summary" id="summary"></div>
+  </div>
+</div>
+
+<!-- ── Main ── -->
+<div class="main">
+
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar"
+    ondragover="event.preventDefault(); this.classList.add('drag-over')"
+    ondragleave="this.classList.remove('drag-over')"
+    ondrop="handleDrop(event)">
+    <div id="sidebar-content">
+      <!-- populated by renderSidebar() -->
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="detail" id="detail">
+    <!-- populated by renderDetail() -->
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── State ──────────────────────────────────────────────
+
+let tests = [];
+let vars  = {};
+let selectedIdx = null;
+let isRunning   = false;
+
+// ── File loading ───────────────────────────────────────
+
+function handleFileInput(input) {
+  if (input.files[0]) loadFile(input.files[0]);
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('sidebar').classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+}
+
+function loadFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => parseYAML(e.target.result);
+  reader.readAsText(file);
+}
+
+function parseYAML(text) {
+  let data;
+  try {
+    data = jsyaml.load(text);
+  } catch(e) {
+    alert('YAML parse error:\n' + e.message);
+    return;
+  }
+
+  if (!data || !Array.isArray(data.tests)) {
+    alert('Invalid format — expected a top-level "tests" array.');
+    return;
+  }
+
+  vars  = data.variables || {};
+  tests = data.tests.map((t, i) => ({
+    name:    t.name    || `Test ${i + 1}`,
+    method:  (t.method || 'GET').toUpperCase(),
+    url:     t.url     || '',
+    headers: t.headers || {},
+    body:    t.body,
+    expect:  t.expect  || {},
+    _status: 'pending',
+    _result: null,
+  }));
+
+  selectedIdx = tests.length ? 0 : null;
+  renderSidebar();
+  renderDetail();
+  updateRunAllBtn();
+  updateSummary();
+}
+
+// ── Variable resolution ────────────────────────────────
+
+function resolveStr(str) {
+  if (typeof str !== 'string') return str;
+  return str.replace(/\{\{(\w+)\}\}/g, (_, k) => vars[k] !== undefined ? vars[k] : `{{${k}}}`);
+}
+
+function resolveDeep(val) {
+  if (typeof val === 'string') return resolveStr(val);
+  if (Array.isArray(val))     return val.map(resolveDeep);
+  if (val && typeof val === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(val)) out[resolveStr(k)] = resolveDeep(v);
+    return out;
+  }
+  return val;
+}
+
+// ── Test execution ─────────────────────────────────────
+
+async function runTest(i) {
+  const t = tests[i];
+  t._status = 'running';
+  t._result = null;
+  updateRow(i);
+  if (selectedIdx === i) renderDetail();
+
+  const method  = t.method;
+  const url     = resolveStr(t.url);
+  const headers = resolveDeep(t.headers);
+
+  let body = undefined;
+  if (t.body !== undefined && !['GET', 'HEAD'].includes(method)) {
+    const resolved = resolveDeep(t.body);
+    body = typeof resolved === 'object' ? JSON.stringify(resolved) : String(resolved);
+    if (!Object.keys(headers).some(k => k.toLowerCase() === 'content-type')) {
+      headers['Content-Type'] = 'application/json';
+    }
+  }
+
+  const start = performance.now();
+  try {
+    const res = await fetch(url, { method, headers, body });
+    const latency = Math.round(performance.now() - start);
+
+    let resBody;
+    const ct = res.headers.get('content-type') || '';
+    try {
+      resBody = ct.includes('json') ? await res.json() : await res.text();
+    } catch(_) { resBody = null; }
+
+    const expected = t.expect.status;
+    const pass = expected === undefined || res.status === expected;
+
+    t._status = pass ? 'pass' : 'fail';
+    t._result = {
+      code:       res.status,
+      statusText: res.statusText,
+      latency,
+      body:       resBody,
+      headers:    Object.fromEntries(res.headers.entries()),
+      expected,
+    };
+  } catch(err) {
+    const latency = Math.round(performance.now() - start);
+    t._status = 'fail';
+    t._result = { error: err.message, latency, code: null };
+  }
+
+  updateRow(i);
+  if (selectedIdx === i) renderDetail();
+  updateSummary();
+}
+
+async function runAll() {
+  if (isRunning || !tests.length) return;
+  isRunning = true;
+
+  document.getElementById('run-all-btn').disabled = true;
+  document.getElementById('run-all-btn').textContent = '⟳ Running…';
+
+  // Reset all to pending first
+  tests.forEach((t, i) => {
+    t._status = 'pending';
+    t._result = null;
+    updateRow(i);
+  });
+  updateSummary();
+
+  for (let i = 0; i < tests.length; i++) {
+    selectTest(i, false);
+    await runTest(i);
+  }
+
+  isRunning = false;
+  document.getElementById('run-all-btn').disabled = false;
+  document.getElementById('run-all-btn').textContent = '▶ Run All';
+}
+
+// ── Rendering ──────────────────────────────────────────
+
+function renderSidebar() {
+  const el = document.getElementById('sidebar-content');
+  if (!tests.length) {
+    el.innerHTML = `
+      <div class="sidebar-empty">
+        <div class="sidebar-empty-icon">⇅</div>
+        <div class="sidebar-empty-title">No tests loaded</div>
+        <div class="sidebar-empty-sub">Upload a YAML file or drop it here</div>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="sidebar-header">
+      <span class="sidebar-title">Test Cases</span>
+      <span class="test-count">${tests.length} test${tests.length !== 1 ? 's' : ''}</span>
+    </div>
+    <div class="test-list" id="test-list"></div>`;
+
+  const list = document.getElementById('test-list');
+  tests.forEach((t, i) => {
+    const row = document.createElement('div');
+    row.className = 'test-row' + (i === selectedIdx ? ' active' : '');
+    row.id = `row-${i}`;
+    row.innerHTML = rowInner(t, i);
+    row.addEventListener('click', () => selectTest(i));
+    list.appendChild(row);
+  });
+}
+
+function rowInner(t, i) {
+  return `
+    <div class="status-dot dot-${t._status}" id="dot-${i}"></div>
+    <span class="method-badge m-${t.method}">${t.method}</span>
+    <div class="test-info">
+      <div class="test-name">${esc(t.name)}</div>
+      <div class="test-url">${esc(t.url)}</div>
+    </div>
+    <button class="run-btn" title="Run this test" onclick="event.stopPropagation(); runSingle(${i})">▶</button>`;
+}
+
+function updateRow(i) {
+  const row = document.getElementById(`row-${i}`);
+  if (row) row.innerHTML = rowInner(tests[i], i);
+  // Re-attach click (innerHTML wipes event listeners on the row itself, but row
+  // click is on the element which we don't replace, only innerHTML changes)
+}
+
+function selectTest(i, scroll = true) {
+  const prev = document.getElementById(`row-${selectedIdx}`);
+  if (prev) prev.classList.remove('active');
+  selectedIdx = i;
+  const next = document.getElementById(`row-${i}`);
+  if (next) {
+    next.classList.add('active');
+    if (scroll) next.scrollIntoView({ block: 'nearest' });
+  }
+  renderDetail();
+}
+
+async function runSingle(i) {
+  if (isRunning) return;
+  selectTest(i);
+  await runTest(i);
+}
+
+function renderDetail() {
+  const el = document.getElementById('detail');
+
+  if (!tests.length) {
+    el.innerHTML = `
+      <div class="detail-empty">
+        <div class="example-yaml">
+          <div class="card-title" style="margin-bottom:12px">Example YAML</div>
+          <pre>${exampleYAMLHighlighted()}</pre>
+        </div>
+      </div>`;
+    return;
+  }
+
+  if (selectedIdx === null) {
+    el.innerHTML = `<div class="detail-empty" style="color:var(--text3);font-family:var(--mono);font-size:12px">Select a test case</div>`;
+    return;
+  }
+
+  const t = tests[selectedIdx];
+  const resolvedURL     = resolveStr(t.url);
+  const resolvedHeaders = resolveDeep(t.headers);
+  const resolvedBody    = t.body !== undefined ? resolveDeep(t.body) : undefined;
+
+  let html = `
+    <div class="detail-heading">
+      <span class="method-badge m-${t.method}" style="font-size:11px;padding:3px 8px">${t.method}</span>
+      <span class="detail-name">${esc(t.name)}</span>
+      ${statusBadge(t)}
+    </div>`;
+
+  // Request card
+  const hasHeaders = Object.keys(resolvedHeaders).length > 0;
+  const hasBody    = resolvedBody !== undefined && !['GET','HEAD'].includes(t.method);
+
+  html += `<div class="card">
+    <div class="card-title">Request</div>
+    <div class="kv">
+      <div class="kv-key">URL</div>
+      <div class="kv-val">${esc(resolvedURL)}</div>
+    </div>`;
+
+  if (hasHeaders) {
+    html += `<div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Headers</div>
+      <div class="headers-list">
+        ${Object.entries(resolvedHeaders).map(([k, v]) =>
+          `<div class="header-row"><span class="header-key">${esc(k)}</span><span class="header-val">${esc(String(v))}</span></div>`
+        ).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (hasBody) {
+    const bodyStr = typeof resolvedBody === 'object'
+      ? JSON.stringify(resolvedBody, null, 2)
+      : String(resolvedBody);
+    html += `<div>
+      <div style="font-family:var(--mono);font-size:10px;color:var(--text3);font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:8px">Body</div>
+      <div class="code-block">${highlightJSON(resolvedBody)}</div>
+    </div>`;
+  }
+
+  if (t.expect.status !== undefined) {
+    html += `<div class="kv">
+      <div class="kv-key">Expected status</div>
+      <div class="kv-val">${t.expect.status}</div>
+    </div>`;
+  }
+
+  html += `</div>`; // end Request card
+
+  // Response card
+  if (t._status === 'running') {
+    html += `<div class="card">
+      <div class="card-title">Response</div>
+      <div style="font-family:var(--mono);font-size:12px;color:var(--amber)">⟳ Running…</div>
+    </div>`;
+  } else if (t._result) {
+    const r = t._result;
+
+    if (r.error) {
+      html += `<div class="card">
+        <div class="card-title">Response</div>
+        <div class="result-meta">
+          <span class="badge badge-red">Network Error</span>
+          <span class="latency">${r.latency}ms</span>
+        </div>
+        <div class="code-block" style="color:var(--red)">${esc(r.error)}</div>
+      </div>`;
+    } else {
+      const statusCls = r.code >= 500 ? 'badge-red' : r.code >= 400 ? 'badge-amber' : r.code >= 300 ? 'badge-blue' : 'badge-green';
+      const passFail  = t._status === 'pass'
+        ? `<span class="badge badge-green">✓ Pass</span>`
+        : `<span class="badge badge-red">✗ Fail</span>`;
+      const expectNote = t._status === 'fail' && r.expected !== undefined
+        ? `<span class="expect-note">expected ${r.expected} · got ${r.code}</span>`
+        : '';
+
+      html += `<div class="card">
+        <div class="card-title">
+          Response
+          <button class="copy-btn" onclick="copyResponse(${selectedIdx})">Copy body</button>
+        </div>
+        <div class="result-meta">
+          <span class="badge ${statusCls}">${r.code} ${esc(r.statusText)}</span>
+          <span class="latency">${r.latency}ms</span>
+          ${passFail}
+          ${expectNote}
+        </div>`;
+
+      if (r.body !== null && r.body !== undefined) {
+        html += `<div class="code-block">${highlightJSON(r.body)}</div>`;
+      } else {
+        html += `<div style="font-family:var(--mono);font-size:11px;color:var(--text3)">(empty body)</div>`;
+      }
+
+      if (Object.keys(r.headers || {}).length) {
+        html += `<details style="margin-top:4px">
+          <summary style="font-family:var(--mono);font-size:10px;color:var(--text3);cursor:pointer;letter-spacing:.06em;text-transform:uppercase;font-weight:600">Response Headers</summary>
+          <div class="headers-list" style="margin-top:8px">
+            ${Object.entries(r.headers).map(([k,v]) =>
+              `<div class="header-row"><span class="header-key">${esc(k)}</span><span class="header-val">${esc(v)}</span></div>`
+            ).join('')}
+          </div>
+        </details>`;
+      }
+
+      html += `</div>`; // end Response card
+    }
+  }
+
+  el.innerHTML = html;
+}
+
+function statusBadge(t) {
+  if (t._status === 'pending') return '';
+  if (t._status === 'running') return `<span class="badge badge-amber">⟳ Running</span>`;
+  if (t._status === 'pass')    return `<span class="badge badge-green">✓ Pass</span>`;
+  if (t._status === 'fail')    return `<span class="badge badge-red">✗ Fail</span>`;
+  return '';
+}
+
+function updateRunAllBtn() {
+  document.getElementById('run-all-btn').disabled = tests.length === 0;
+}
+
+function updateSummary() {
+  const el = document.getElementById('summary');
+  if (!tests.length) { el.classList.remove('show'); return; }
+
+  const pass    = tests.filter(t => t._status === 'pass').length;
+  const fail    = tests.filter(t => t._status === 'fail').length;
+  const pending = tests.filter(t => t._status === 'pending').length;
+  const running = tests.filter(t => t._status === 'running').length;
+
+  const parts = [];
+  if (pass)    parts.push(`<span style="color:var(--green)">${pass} passed</span>`);
+  if (fail)    parts.push(`<span style="color:var(--red)">${fail} failed</span>`);
+  if (running) parts.push(`<span style="color:var(--amber)">${running} running</span>`);
+  if (pending) parts.push(`<span style="color:var(--text3)">${pending} pending</span>`);
+
+  el.innerHTML = parts.join(' · ');
+  el.classList.add('show');
+}
+
+// ── Helpers ────────────────────────────────────────────
+
+function esc(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function highlightJSON(val) {
+  if (val === null || val === undefined) return '<span class="json-null">null</span>';
+  if (typeof val !== 'object' && typeof val !== 'string') {
+    const str = JSON.stringify(val, null, 2);
+    return esc(str);
+  }
+  const str = typeof val === 'object' ? JSON.stringify(val, null, 2) : String(val);
+  // Simple JSON syntax highlight
+  return str.replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, match => {
+    if (/^"/.test(match)) {
+      return /:$/.test(match)
+        ? `<span class="json-key">${esc(match)}</span>`
+        : `<span class="json-str">${esc(match)}</span>`;
+    }
+    if (/true|false/.test(match)) return `<span class="json-bool">${match}</span>`;
+    if (/null/.test(match))        return `<span class="json-null">${match}</span>`;
+    return `<span class="json-num">${match}</span>`;
+  });
+}
+
+function copyResponse(i) {
+  const r = tests[i]?._result;
+  if (!r || r.body === undefined) return;
+  const text = typeof r.body === 'object' ? JSON.stringify(r.body, null, 2) : String(r.body);
+  navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+function exampleYAMLHighlighted() {
+  return [
+    ['comment', '# Define reusable variables'],
+    ['key', 'variables', ':'],
+    ['str', '  BASE_URL', ': https://api.example.com'],
+    ['str', '  TOKEN',    ': your-secret-token'],
+    ['', '', ''],
+    ['key', 'tests', ':'],
+    ['comment', '  - # GET request'],
+    ['str', '    name',   ': List users'],
+    ['str', '    method', ': GET'],
+    ['str', '    url',    ': "{{BASE_URL}}/users"'],
+    ['key', '    headers', ':'],
+    ['str', '      Authorization', ': "Bearer {{TOKEN}}"'],
+    ['key', '    expect', ':'],
+    ['num', '      status', ': 200'],
+    ['', '', ''],
+    ['comment', '  - # POST with body'],
+    ['str', '    name',   ': Create user'],
+    ['str', '    method', ': POST'],
+    ['str', '    url',    ': "{{BASE_URL}}/users"'],
+    ['key', '    body', ':'],
+    ['str', '      name',  ': Alice'],
+    ['str', '      email', ': alice@example.com'],
+    ['key', '    expect', ':'],
+    ['num', '      status', ': 201'],
+  ].map(([type, k, v = '']) => {
+    if (type === 'comment') return `<span class="yaml-comment">${esc(k)}</span>`;
+    if (!k) return '';
+    const key = `<span class="yaml-key">${esc(k)}</span>`;
+    if (!v) return key;
+    const val = type === 'num'
+      ? `<span class="yaml-num">${esc(v.replace(': ', ''))}</span>`
+      : `<span class="yaml-str">${esc(v)}</span>`;
+    return `${key}: ${val}`;
+  }).join('\n');
+}
+
+// ── Init ───────────────────────────────────────────────
+
+renderSidebar();
+renderDetail();
+</script>
+</body>
+</html>
