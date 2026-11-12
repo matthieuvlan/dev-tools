@@ -12,6 +12,7 @@ A collection of five standalone developer utility tools, each a self-contained H
 - `json-tools.html` — JSON formatter with live syntax highlighting + JSON diff
 - `regex-tester.html` — Interactive regex tester with flags, match highlighting, and replace
 - `encoders.html` — Base64 (text + file) and URL encoder/decoder with URL breakdown
+- `sprint-circus.html` — Retro generator with wild formats (NL/EN). Has its own playful design system (Bricolage Grotesque / Space Mono) and uses `addEventListener`; it does not follow the shared dev-tools styling on purpose.
 
 ## Development
 

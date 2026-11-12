@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sprint Circus — zotte retro-formats / wild retro formats</title>
+<meta name="description" content="Zotte retro-formats voor je team. / Wild retrospective formats for your team.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎪</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#FFF4E0; --ink:#17140F; --card:#FFFDF8; --muted:#6B6253;
+    --tomato:#FF5A36; --sun:#FFC83D; --mint:#3DDC97; --grape:#7B6CFF; --sky:#4CC9F0; --pink:#FF8FC7;
+    --r:16px; --b:3px solid var(--ink); --sh:5px 5px 0 var(--ink);
+    color-scheme: light;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;background:var(--bg);color:var(--ink)}
+  body{font-family:"Bricolage Grotesque",system-ui,sans-serif;line-height:1.4;
+    background-image:radial-gradient(rgba(23,20,15,.09) 1.2px,transparent 1.2px);background-size:18px 18px;padding-bottom:110px}
+  .wrap{max-width:900px;margin:0 auto;padding:20px 16px 40px}
+  .mono{font-family:"Space Mono",ui-monospace,monospace}
+  header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin:8px 0 18px}
+  .logo{font-weight:800;font-size:clamp(38px,9vw,68px);line-height:.9;letter-spacing:-.03em;margin:0}
+  .logo span{display:inline-block;background:var(--tomato);color:var(--card);padding:0 .12em;border:var(--b);border-radius:12px;box-shadow:var(--sh);transform:rotate(-3deg);margin-left:.05em}
+  .tag{margin:6px 0 0;color:var(--muted);font-size:17px;max-width:420px}
+  .hside{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+  .count{font-size:12px;border:var(--b);border-radius:999px;padding:6px 12px;background:var(--sun);box-shadow:3px 3px 0 var(--ink);white-space:nowrap}
+  .lang{display:inline-flex;border:var(--b);border-radius:999px;overflow:hidden;box-shadow:3px 3px 0 var(--ink);background:var(--card)}
+  .lang button{font:700 13px "Space Mono",monospace;border:0;background:transparent;color:var(--ink);padding:6px 12px;cursor:pointer}
+  .lang button+button{border-left:var(--b)}
+  .lang button[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+
+  .panel{background:var(--card);border:var(--b);border-radius:var(--r);box-shadow:var(--sh);padding:16px}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:end}
+  .controls .full{grid-column:1/-1}
+  .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:8px;font-family:"Space Mono",monospace}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{font:inherit;font-weight:600;font-size:15px;border:var(--b);border-radius:999px;background:var(--card);padding:7px 14px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);transition:transform .08s}
+  .chip[aria-pressed="true"]{background:var(--ink);color:var(--card)}
+  .chip:active{transform:translate(2px,2px);box-shadow:none}
+  .spin{font:inherit;font-weight:800;font-size:clamp(24px,5vw,32px);width:100%;padding:16px;border:var(--b);border-radius:var(--r);
+    background:var(--tomato);color:var(--card);box-shadow:var(--sh);cursor:pointer;letter-spacing:-.01em;transition:transform .08s,box-shadow .08s}
+  .spin:hover{transform:translate(-1px,-1px);box-shadow:7px 7px 0 var(--ink)}
+  .spin:active{transform:translate(4px,4px);box-shadow:1px 1px 0 var(--ink)}
+
+  .hero{margin-top:22px;background:var(--grape);color:var(--card);position:relative;overflow:hidden}
+  .hero .emoji{font-size:64px;line-height:1;float:right;margin:-4px 0 0 10px;filter:drop-shadow(3px 3px 0 var(--ink))}
+  .hero h2{font-size:clamp(32px,7vw,54px);line-height:.95;margin:4px 0 8px;letter-spacing:-.03em;font-weight:800}
+  .hero p{margin:0;font-size:18px;max-width:560px}
+  .hero .kicker{color:var(--sun)}
+  .rowbtns{display:flex;gap:8px;position:absolute;right:14px;bottom:14px}
+  .ibtn{font:inherit;font-size:13px;font-weight:700;border:var(--b);border-radius:10px;background:var(--card);color:var(--ink);padding:5px 10px;cursor:pointer;box-shadow:2px 2px 0 var(--ink);font-family:"Space Mono",monospace}
+  .ibtn[aria-pressed="true"]{background:var(--sun)}
+  .ibtn:active{transform:translate(2px,2px);box-shadow:none}
+  .hero .tip{margin-top:14px;padding-top:12px;border-top:2px dashed rgba(255,255,255,.5);font-size:15px;padding-right:170px}
+
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:16px}
+  .col{border:var(--b);border-radius:14px;padding:12px 14px 14px;box-shadow:3px 3px 0 var(--ink);min-height:118px;color:var(--ink)}
+  .col h3{margin:0 0 6px;font-size:20px;line-height:1.1}
+  .col p{margin:0;font-size:15px}
+  .col:nth-child(4n+1){background:var(--sun)} .col:nth-child(4n+2){background:var(--sky)}
+  .col:nth-child(4n+3){background:var(--pink)} .col:nth-child(4n+4){background:var(--mint)}
+  .col:nth-child(odd){transform:rotate(-.6deg)} .col:nth-child(even){transform:rotate(.7deg)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}
+  .slot{position:relative;padding-bottom:54px}
+  .slot .k{font-family:"Space Mono",monospace;font-size:12px;text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .slot .v{font-size:19px;font-weight:600;margin-top:6px}
+  .slot .rowbtns{bottom:12px;right:12px}
+  .slot.twist{background:var(--sun)} .slot.close{background:var(--mint);grid-column:1/-1} .slot.warm{background:var(--sky)}
+
+  h4.sec{font-size:26px;margin:30px 0 12px;letter-spacing:-.02em}
+  .agenda{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+  .agenda li{display:grid;grid-template-columns:62px 1fr auto;gap:12px;align-items:center;background:var(--card);border:var(--b);border-radius:14px;padding:10px 12px;box-shadow:3px 3px 0 var(--ink)}
+  .agenda .min{font-family:"Space Mono",monospace;font-weight:700;font-size:20px;text-align:center;background:var(--ink);color:var(--card);border-radius:10px;padding:6px 0}
+  .agenda .min small{display:block;font-size:10px;font-weight:400;opacity:.8}
+  .agenda b{display:block;font-size:17px}
+  .agenda span.d{font-size:14px;color:var(--muted)}
+  .play{font-size:18px;width:42px;height:42px;border:var(--b);border-radius:50%;background:var(--sun);cursor:pointer;box-shadow:2px 2px 0 var(--ink)}
+  .play:active{transform:translate(2px,2px);box-shadow:none}
+
+  .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}
+  .btn{font:inherit;font-weight:700;font-size:16px;border:var(--b);border-radius:12px;background:var(--card);color:var(--ink);padding:10px 16px;cursor:pointer;box-shadow:3px 3px 0 var(--ink)}
+  .btn.dark{background:var(--ink);color:var(--card)}
+  .btn:active{transform:translate(3px,3px);box-shadow:none}
+  .code{font-family:"Space Mono",monospace;font-size:12px;color:var(--muted);margin-top:10px}
+
+  .timer{position:fixed;left:50%;bottom:14px;transform:translateX(-50%) translateY(140%);transition:transform .25s;z-index:20;
+    width:min(560px,calc(100% - 24px));background:var(--ink);color:var(--card);border-radius:18px;padding:10px 12px 10px 18px;display:flex;align-items:center;gap:12px;box-shadow:5px 5px 0 var(--tomato)}
+  .timer.on{transform:translateX(-50%) translateY(0)}
+  .timer .t{font-family:"Space Mono",monospace;font-size:30px;font-weight:700;min-width:96px}
+  .timer .n{flex:1;font-size:14px;line-height:1.2;overflow:hidden}
+  .timer .n small{display:block;opacity:.7;font-family:"Space Mono",monospace;font-size:11px;text-transform:uppercase}
+  .timer button{font:inherit;font-weight:700;border:2px solid var(--card);background:transparent;color:var(--card);border-radius:10px;padding:6px 10px;cursor:pointer}
+  .timer.done{background:var(--tomato);box-shadow:5px 5px 0 var(--ink);animation:wob .5s infinite alternate}
+  @keyframes wob{to{transform:translateX(-50%) rotate(1.5deg)}}
+
+  .modal{position:fixed;inset:0;background:rgba(23,20,15,.55);display:none;align-items:center;justify-content:center;padding:16px;z-index:30}
+  .modal.on{display:flex}
+  .modal .panel{width:min(620px,100%)}
+  .modal textarea{width:100%;height:300px;font-family:"Space Mono",monospace;font-size:12px;border:var(--b);border-radius:10px;padding:10px;background:var(--bg)}
+  .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-200%);background:var(--mint);border:var(--b);border-radius:12px;padding:10px 16px;font-weight:700;box-shadow:var(--sh);transition:transform .25s;z-index:40}
+  .toast.on{transform:translateX(-50%) translateY(0)}
+
+  .shuffling .hero h2,.shuffling .slot .v{filter:blur(1.5px);opacity:.85}
+  footer{margin-top:36px;font-size:13px;color:var(--muted);text-align:center}
+
+  @media (max-width:640px){
+    .controls,.grid2{grid-template-columns:1fr}
+    .hside{flex-direction:row;align-items:center}
+    .hero .emoji{font-size:48px}
+    .hero .tip{padding-right:0;padding-bottom:40px}
+    .agenda li{grid-template-columns:54px 1fr auto}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <header>
+    <div>
+      <h1 class="logo">Sprint <span>Circus</span></h1>
+      <p class="tag" data-i="tagline"></p>
+    </div>
+    <div class="hside">
+      <div class="lang" role="group" aria-label="Language / Taal">
+        <button data-lang="nl" aria-pressed="true">NL</button><button data-lang="en" aria-pressed="false">EN</button>
+      </div>
+      <div class="count mono" id="count"></div>
+    </div>
+  </header>
+
+  <section class="panel controls">
+    <div>
+      <div class="lbl" data-i="howLong"></div>
+      <div class="chips" id="durChips"></div>
+    </div>
+    <div>
+      <div class="lbl" data-i="zotLevel"></div>
+      <div class="chips" id="zotChips"></div>
+    </div>
+    <div class="full"><button class="spin" id="spin" data-i="spin"></button></div>
+  </section>
+
+  <section id="result" aria-live="polite">
+    <div class="panel hero">
+      <div class="emoji" id="fEmoji"></div>
+      <div class="lbl kicker" data-i="todaysFormat"></div>
+      <h2 id="fName"></h2>
+      <p id="fPitch"></p>
+      <div class="cols" id="fCols"></div>
+      <div class="tip" id="fTip"></div>
+      <div class="rowbtns">
+        <button class="ibtn" data-lock="f" aria-pressed="false"></button>
+        <button class="ibtn" data-roll="f"></button>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel slot warm">
+        <div class="k" data-i="warmup"></div><div class="v" id="oText"></div>
+        <div class="rowbtns"><button class="ibtn" data-lock="o" aria-pressed="false"></button><button class="ibtn" data-roll="o">↻</button></div>
+      </div>
+      <div class="panel slot twist">
+        <div class="k" data-i="twist"></div><div class="v" id="tText"></div>
+        <div class="rowbtns"><button class="ibtn" data-lock="t" aria-pressed="false"></button><button class="ibtn" data-roll="t">↻</button></div>
+      </div>
+      <div class="panel slot close">
+        <div class="k" data-i="closer"></div><div class="v" id="aText"></div>
+        <div class="rowbtns"><button class="ibtn" data-lock="a" aria-pressed="false"></button><button class="ibtn" data-roll="a">↻</button></div>
+      </div>
+    </div>
+
+    <h4 class="sec"><span data-i="agenda"></span> <span class="mono" style="font-size:14px;font-weight:400" id="agTotal"></span></h4>
+    <ol class="agenda" id="agenda"></ol>
+
+    <div class="actions">
+      <button class="btn dark" id="copy" data-i="copy"></button>
+      <button class="btn" id="startAll" data-i="start"></button>
+    </div>
+    <div class="code" id="code"></div>
+  </section>
+
+  <footer><span data-i="footer"></span><br><a href="index.html" style="color:inherit">← Dev Tools</a></footer>
+</div>
+
+<div class="timer" id="timer" role="timer" aria-live="off">
+  <div class="t" id="tTime">00:00</div>
+  <div class="n"><small id="tStep"></small><span id="tName"></span></div>
+  <button id="tPause">⏸</button>
+  <button id="tNext">⏭</button>
+  <button id="tStop">✕</button>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true">
+  <div class="panel">
+    <div class="lbl" data-i="copyFail"></div>
+    <textarea id="mText" readonly></textarea>
+    <div class="actions" style="margin-top:12px"><button class="btn dark" id="mClose" data-i="close"></button></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- UI strings ---------- */
+const UI = {
+  nl:{tagline:'Zotte retro-formats voor je team. Eén druk op de knop, en je retro staat klaar — agenda en timer inbegrepen.',
+    howLong:'Hoe lang?', zotLevel:'Zotheidsniveau', spin:'🎰 Draai een retro!', todaysFormat:'Format van vandaag',
+    warmup:'① Opwarmer', twist:'⚡ Zotte regel van vandaag', closer:'⑤ Afsluiter', agenda:'Agenda',
+    copy:'📋 Kopieer agenda', start:'▶ Start de retro', copyFail:'Kopiëren lukte niet automatisch — selecteer en kopieer zelf', close:'Sluiten',
+    footer:'Tip: de link in je adresbalk onthoudt deze exacte retro — handig om door te sturen naar je team.',
+    lvl:['😇 Braaf','🤪 Zot','🤯 Compleet zot'], min:'min', minutes:'minuten', combos:n=>n+' mogelijke retro\'s',
+    hold:'🔓 Hou vast', held:'🔒 Vast', other:'↻ Ander', lockTitle:'Hou dit vast bij de volgende draai', unlockTitle:'Ontgrendel',
+    allLocked:'Alles staat vast 🔒', copied:'Agenda gekopieerd! 🎉', done:'Retro klaar! 🎉', tipLbl:'Facilitatortip:',
+    block:(i,n)=>'Blok '+i+' van '+n, code:'Retro-code', startTimer:'Start timer voor ',
+    ruleLbl:'Zotte regel', retroLbl:'RETRO',
+    ag:[ 'Opwarmer','Stil schrijven','Groeperen & bespreken','Acties','Afsluiter' ],
+    agW:n=>'Iedereen vult de kolommen van "'+n+'" aan. Eén idee per post-it.',
+    agB:'Clusteren, 3 stippen per persoon, bespreek de top 3.',
+    agA:'Wie, wat, tegen wanneer. Liever 2 echte dan 6 vage.'},
+  en:{tagline:'Wild retrospective formats for your team. One push of the button and your retro is ready — agenda and timer included.',
+    howLong:'How long?', zotLevel:'Craziness level', spin:'🎰 Spin a retro!', todaysFormat:'Today\'s format',
+    warmup:'① Warm-up', twist:'⚡ Today\'s crazy rule', closer:'⑤ Closer', agenda:'Agenda',
+    copy:'📋 Copy agenda', start:'▶ Start the retro', copyFail:'Couldn\'t copy automatically — select the text and copy it yourself', close:'Close',
+    footer:'Tip: the link in your address bar remembers this exact retro — handy for sending to your team.',
+    lvl:['😇 Tame','🤪 Silly','🤯 Totally bonkers'], min:'min', minutes:'minutes', combos:n=>n+' possible retros',
+    hold:'🔓 Keep', held:'🔒 Kept', other:'↻ Another', lockTitle:'Keep this on the next spin', unlockTitle:'Unlock',
+    allLocked:'Everything is locked 🔒', copied:'Agenda copied! 🎉', done:'Retro done! 🎉', tipLbl:'Facilitator tip:',
+    block:(i,n)=>'Block '+i+' of '+n, code:'Retro code', startTimer:'Start timer for ',
+    ruleLbl:'Crazy rule', retroLbl:'RETRO',
+    ag:[ 'Warm-up','Silent writing','Cluster & discuss','Actions','Closer' ],
+    agW:n=>'Everyone fills in the columns of "'+n+'". One idea per sticky note.',
+    agB:'Cluster, 3 dots per person, discuss the top 3.',
+    agA:'Who, what, by when. Two real ones beat six vague ones.'}
+};
+
+/* ---------- Formats: [name, pitch, columns, tip] ---------- */
+const F = [
+ {e:'🌦️',z:1,
+  nl:['De Weerman','Breng de sprint als het weerbericht van 19u55. Graag met grote handgebaren.',[['☀️ Zon','Wat ging er vlot en gaf energie?'],['☁️ Wolken','Wat hing er de hele sprint boven ons hoofd?'],['⛈️ Storm','Wat sloeg plots in?'],['🌈 Voorspelling','Welk weer bestellen we voor volgende sprint?']],'Laat iemand de conclusie brengen als weerman, voor een denkbeeldige kaart van België.'],
+  en:['The Weather Report','Present the sprint like the evening forecast. Big hand gestures, please.',[['☀️ Sunshine','What went smoothly and gave energy?'],['☁️ Clouds','What hung over us the whole sprint?'],['⛈️ Storm','What hit us out of nowhere?'],['🌈 Forecast','What weather do we order for next sprint?']],'Have someone deliver the conclusion as a weather presenter, in front of an imaginary map.']},
+ {e:'🌱',z:1,
+  nl:['De Moestuin','Je team is een volkstuintje. Wat groeit er, wat woekert er?',[['🌸 Bloeit','Wat groeit en mag blijven?'],['🌿 Onkruid','Wat woekert en moet eruit?'],['🌰 Zaaien','Welk klein experiment planten we?'],['🧺 Oogsten','Wat draagt eindelijk vrucht?']],'Hou het onkruid concreet: één gewoonte of proces per post-it, geen personen.'],
+  en:['The Vegetable Patch','Your team is an allotment. What\'s growing, what\'s running wild?',[['🌸 Blooming','What\'s growing and should stay?'],['🌿 Weeds','What\'s spreading and needs pulling?'],['🌰 Sow','Which small experiment do we plant?'],['🧺 Harvest','What finally bore fruit?']],'Keep the weeds concrete: one habit or process per sticky, never people.']},
+ {e:'🧺',z:1,
+  nl:['De Rommelmarkt','Alles van de sprint ligt op een dekentje op de stoep. Wat houden we?',[['💎 Houden','Waardevol, blijft in huis.'],['🏷️ Verkopen','Mag naar iemand anders of een ander team.'],['🗑️ Container','Weg ermee, niemand wil het.'],['🔍 Gezocht','Wat missen we nog in onze collectie?']],'Begin bij de container: weggooien geeft het meeste ruimte voor de volgende sprint.'],
+  en:['The Yard Sale','Everything from the sprint is laid out on a blanket. What do we keep?',[['💎 Keep','Valuable, stays in the house.'],['🏷️ Sell','Can go to someone else or another team.'],['🗑️ Skip','Toss it, nobody wants it.'],['🔍 Wanted','What\'s missing from our collection?']],'Start with the skip: throwing things out frees the most room for next sprint.']},
+ {e:'🚀',z:1,
+  nl:['Ruimtemissie','Mission control vraagt een debrief. Houston luistert mee.',[['🚀 Lift-off','Wat gaf ons stuwkracht?'],['🧯 Houston, probleem','Wat ging er mis aan boord?'],['☄️ Meteorieten','Welke risico\'s zien we aankomen?'],['🪐 Volgende planeet','Waar willen we landen?']],'Sluit af met een aftelling van 10 naar 0 voor de eerste actie. Iedereen telt mee.'],
+  en:['Space Mission','Mission control wants a debrief. Houston is listening.',[['🚀 Lift-off','What gave us thrust?'],['🧯 Houston, problem','What went wrong on board?'],['☄️ Meteors','Which risks do we see coming?'],['🪐 Next planet','Where do we want to land?']],'End with a countdown from 10 to 0 before the first action. Everyone counts along.']},
+ {e:'🚴',z:1,
+  nl:['Ronde van de Sprint','Een voorjaarsklassieker in tien werkdagen. Kasseien inbegrepen.',[['💨 Rugwind','Wat duwde ons vooruit?'],['🧱 Kasseien','Wat schudde ons door elkaar?'],['🤕 Valpartij','Waar gingen we onderuit?'],['🏁 Volgende koers','Welke tactiek kiezen we?']],'Kies ook een waterdrager van de sprint: wie deed het onzichtbare werk? Die krijgt de bloemen.'],
+  en:['Tour de Sprint','A spring classic in ten working days. Cobblestones included.',[['💨 Tailwind','What pushed us forward?'],['🧱 Cobbles','What shook us up?'],['🤕 Crash','Where did we go down?'],['🏁 Next race','Which tactics do we pick?']],'Also name the domestique of the sprint: who did the invisible work? They get the flowers.']},
+ {e:'🍟',z:2,
+  nl:['Het Frietkot','Een groot pak sprint met alles erop. Smaakte het?',[['🍟 Krokant','Wat was top?'],['🫠 Slap','Wat viel tegen?'],['🥫 Saus erbij','Wat had het beter gemaakt?'],['🧾 Bestelling','Wat nemen we volgende keer?']],'Laat iedereen eerst zijn vaste frietkotbestelling noemen. Zegt meer dan een persoonlijkheidstest.'],
+  en:['The Fry Shack','A large portion of sprint with everything on it. Did it taste good?',[['🍟 Crispy','What was great?'],['🫠 Soggy','What was disappointing?'],['🥫 Extra sauce','What would have made it better?'],['🧾 Next order','What do we get next time?']],'Have everyone share their usual fast-food order first. It says more than a personality test.']},
+ {e:'👨‍🍳',z:2,
+  nl:['De Kookshow','De jury proeft de sprint. Wie kreeg een ster, wat ging de vuilbak in?',[['🧂 Smaakte','Ingrediënten die werkten.'],['🔥 Aangebrand','Wat bleef aan de pan plakken?'],['🤌 Geheim ingrediënt','Wie of wat maakte het verschil?'],['📖 Recept','Wat koken we volgende sprint?']],'Facilitator speelt strenge chef. "Ja chef!" is het enige toegestane antwoord op een actiepunt.'],
+  en:['The Cooking Show','The judges taste the sprint. Who earned a star, what went in the bin?',[['🧂 Tasty','Ingredients that worked.'],['🔥 Burnt','What stuck to the pan?'],['🤌 Secret ingredient','Who or what made the difference?'],['📖 Recipe','What do we cook next sprint?']],'The facilitator plays a strict head chef. "Yes chef!" is the only accepted reply to an action item.']},
+ {e:'🔐',z:2,
+  nl:['Escape Room','Het team zat 2 weken opgesloten. Zijn we buiten geraakt?',[['🔓 Sloten open','Wat kregen we opgelost?'],['🧩 Codes niet gevonden','Waar bleven we hangen?'],['💡 Hints','Welke hints kregen (of negeerden) we?'],['🚪 Volgende kamer','Wat moeten we eerst kraken?']],'Zet een zichtbare timer van 60 minuten. Druk helpt, echt.'],
+  en:['Escape Room','The team was locked in for two weeks. Did we get out?',[['🔓 Locks opened','What did we solve?'],['🧩 Codes not found','Where did we get stuck?'],['💡 Hints','Which hints did we get (or ignore)?'],['🚪 Next room','What do we need to crack first?']],'Put a visible 60-minute timer on screen. Pressure helps, honestly.']},
+ {e:'🏴‍☠️',z:2,
+  nl:['Het Piratenschip','Hijs de zeilen, maatjes. Wat ligt er in de kist?',[['💰 Schat','Wat hebben we buitgemaakt?'],['⚓ Ankers','Wat hield ons tegen?'],['🦈 Haaien','Welke risico\'s zwemmen onder water?'],['🏝️ Eiland in zicht','Waar varen we naartoe?']],'Wie een anker benoemt, mag "arrr" zeggen. Dat is geen optie, dat is protocol.'],
+  en:['The Pirate Ship','Hoist the sails, mateys. What\'s in the chest?',[['💰 Treasure','What did we plunder?'],['⚓ Anchors','What held us back?'],['🦈 Sharks','Which risks lurk below the surface?'],['🏝️ Land ho','Where are we sailing to?']],'Whoever names an anchor says "arrr". Not optional. Protocol.']},
+ {e:'🪛',z:2,
+  nl:['Het Bouwpakket','De sprint kwam in een platte doos. Staat de kast recht?',[['✅ Paste meteen','Wat klikte zonder gedoe?'],['🔩 Schroefjes over','Wat deden we voor niets?'],['📄 Handleiding vaag','Wat was onduidelijk?'],['🛋️ Volgend meubel','Wat bouwen we nu?']],'De "schroefjes over" zijn vaak het interessantst: verspild werk dat niemand mist.'],
+  en:['Flat-Pack Furniture','The sprint came in a flat box. Is the wardrobe standing straight?',[['✅ Fit right away','What clicked without fuss?'],['🔩 Leftover screws','What did we do for nothing?'],['📄 Vague manual','What was unclear?'],['🛋️ Next piece','What do we build now?']],'The leftover screws are usually the most interesting: wasted work nobody misses.']},
+ {e:'🏎️',z:2,
+  nl:['De Pitstop','Twee seconden in de pits. Wat moet er gewisseld worden?',[['🏁 Snelste ronde','Waar vlogen we?'],['🛞 Banden wisselen','Wat moet dringend anders?'],['🚧 Safety car','Wat vertraagde iedereen?'],['📻 Teamradio','Boodschap aan de coureur.']],'Lees de teamradio-post-its voor met kraak in je stem. "Box, box."'],
+  en:['The Pit Stop','Two seconds in the pits. What needs changing?',[['🏁 Fastest lap','Where did we fly?'],['🛞 New tyres','What urgently needs to change?'],['🚧 Safety car','What slowed everyone down?'],['📻 Team radio','A message to the driver.']],'Read the team-radio stickies with crackle in your voice. "Box, box."']},
+ {e:'🎡',z:2,
+  nl:['De Kermis','De sprint was een kermis. Wat was plezant, wat was eng?',[['🚗 Botsauto\'s','Waar botsten we op elkaar?'],['👻 Spookhuis','Wat was eng of onduidelijk?'],['🍭 Suikerspin','Zoet, maar weinig om het lijf.'],['🎯 Schietkraam','Wat willen we raken?']],'De suikerspin-kolom ontmaskert drukdoenerij. Neem er minstens één actie op.'],
+  en:['The Funfair','The sprint was a funfair. What was fun, what was scary?',[['🚗 Bumper cars','Where did we bump into each other?'],['👻 Ghost train','What was scary or unclear?'],['🍭 Candy floss','Sweet, but not much substance.'],['🎯 Shooting gallery','What do we want to hit?']],'The candy-floss column exposes busywork. Take at least one action on it.']},
+ {e:'🎁',z:2,
+  nl:['Brief aan de Sint','Seizoensformat. Was het team braaf? De roe ligt klaar.',[['😇 Braaf geweest','Waar zijn we trots op?'],['🪵 Roe verdiend','Wat was niet zo braaf?'],['📜 Verlanglijstje','Wat wensen we ons?'],['🍊 In de schoen','Een kleine verrassing voor een collega.']],'Sluit af met een collectief Sinterklaasgedicht over de grootste blocker. Rijm verplicht, kwaliteit niet.'],
+  en:['Letter to Santa','Seasonal format. Has the team been naughty or nice?',[['😇 Nice','What are we proud of?'],['🪨 Naughty','What wasn\'t so nice?'],['📜 Wish list','What do we wish for?'],['🧦 Stocking stuffer','A small surprise for a colleague.']],'End with a group poem about the biggest blocker. Rhyming mandatory, quality optional.']},
+ {e:'🦁',z:3,
+  nl:['Natuurdocumentaire','Hier zien we het team in zijn natuurlijke habitat… Fluisterstem aan.',[['🎙️ In het wild','Welk gedrag zagen we bij onszelf?'],['🐊 Roofdieren','Wat at onze tijd op?'],['🐣 Nieuw leven','Wat is er ontstaan?'],['🦬 Migratie','Waar trekken we naartoe?']],'Elke post-it wordt voorgelezen met fluisterende documentairestem. Geen uitzonderingen.'],
+  en:['Nature Documentary','Here we observe the team in its natural habitat… Whisper voice on.',[['🎙️ In the wild','What behaviour did we spot in ourselves?'],['🐊 Predators','What ate our time?'],['🐣 New life','What was born?'],['🦬 Migration','Where are we heading?']],'Every sticky is read aloud in a hushed documentary voice. No exceptions.']},
+ {e:'🌋',z:3,
+  nl:['De Rampenfilm','Een blockbuster in twee weken. Iemand redde de wereld. Bijna.',[['🦸 De held','Wie of wat redde de dag?'],['☄️ De meteoriet','Wat kwam er op ons af?'],['🙈 Het moment','Wanneer hadden we het moeten zien?'],['🎬 Het vervolg','Wat gebeurt er in deel 2?']],'Laat iemand de trailer van "deel 2" inspreken met de stem van een filmtrailer.'],
+  en:['The Disaster Movie','A two-week blockbuster. Someone saved the world. Almost.',[['🦸 The hero','Who or what saved the day?'],['☄️ The meteor','What came crashing at us?'],['🙈 The moment','When should we have seen it?'],['🎬 The sequel','What happens in part 2?']],'Have someone narrate the trailer for "part 2" in a movie-trailer voice.']},
+ {e:'💘',z:3,
+  nl:['Sprint Dating','De sprint heeft een profiel. Swipen maar.',[['👉 Swipe right','Wat vonden we aantrekkelijk?'],['👈 Swipe left','Nee, dank je.'],['🚩 Red flags','Waarschuwingssignalen die we zagen.'],['💌 Nieuwe bio','Wat zoeken we in de volgende sprint?']],'Schrijf de nieuwe bio samen, in max. 3 zinnen. Dat is meteen je sprintdoel.'],
+  en:['Sprint Dating','The sprint has a profile. Start swiping.',[['👉 Swipe right','What did we find attractive?'],['👈 Swipe left','No thanks.'],['🚩 Red flags','Warning signs we noticed.'],['💌 New bio','What are we looking for in the next sprint?']],'Write the new bio together in max. 3 sentences. That\'s your sprint goal right there.']},
+ {e:'📺',z:3,
+  nl:['De Soap','Vorige keer in "De Sprint": verraad, liefde en een kapotte pipeline.',[['😱 Plotwending','Wat zag niemand aankomen?'],['💥 Drama','Waar was er spanning?'],['💞 Romance','Welke samenwerking liep onverwacht goed?'],['🔚 Cliffhanger','Wat blijft er hangen?']],'Start met een dramatische "vorige keer in…"-samenvatting door de facilitator.'],
+  en:['The Soap Opera','Previously on "The Sprint": betrayal, romance and a broken pipeline.',[['😱 Plot twist','What did nobody see coming?'],['💥 Drama','Where was the tension?'],['💞 Romance','Which collaboration went surprisingly well?'],['🔚 Cliffhanger','What\'s left hanging?']],'Open with a dramatic "previously on…" recap by the facilitator.']},
+ {e:'🎤',z:3,
+  nl:['De Talentenshow','Elk sprintonderdeel staat op het podium. De jury beslist.',[['✅ Ja','Mag door, sterke act.'],['❌ Nee','Bedankt en tot ziens.'],['✨ Golden buzzer','Absolute topper van de sprint.'],['🎟️ Volgende ronde','Wat krijgt een tweede kans?']],'Iedereen krijgt maar één golden buzzer. Kies verstandig, en druk hard op tafel.'],
+  en:['The Talent Show','Every part of the sprint takes the stage. The judges decide.',[['✅ Yes','Goes through, strong act.'],['❌ No','Thanks and goodbye.'],['✨ Golden buzzer','The absolute star of the sprint.'],['🎟️ Next round','What gets a second chance?']],'Everyone gets one golden buzzer. Choose wisely, and slam the table.']},
+ {e:'⏳',z:3,
+  nl:['De Tijdmachine','Je stapt in de tijdmachine. Bestemming: dag 1 van de sprint.',[['📼 Terug naar dag 1','Wat zou je jezelf vertellen?'],['🧳 Mee in de koffer','Wat nemen we mee?'],['🗑️ Achterlaten','Wat laten we in het verleden?'],['📮 Brief aan later','Aan ons, over 3 sprints.']],'Bewaar de brieven en lees ze voor in de retro over 3 sprints. Zet nu een herinnering.'],
+  en:['The Time Machine','You step into the time machine. Destination: day 1 of the sprint.',[['📼 Back to day 1','What would you tell yourself?'],['🧳 Pack it','What do we take along?'],['🗑️ Leave behind','What stays in the past?'],['📮 Letter to later','To us, three sprints from now.']],'Keep the letters and read them at the retro three sprints from now. Set a reminder now.']},
+ {e:'🎪',z:3,
+  nl:['Het Festival','Drie dagen modder, veel lawaai, en één onvergetelijk optreden.',[['🎸 Headliner','Het hoogtepunt van de sprint.'],['🥾 Modder','Waar zaten we vast?'],['🚽 Wachtrij','Waarop stonden we te wachten?'],['📣 Line-up','Wat programmeren we volgende keer?']],'De wachtrij-kolom is goud voor afhankelijkheden. Noteer telkens op wie of wat we wachtten.'],
+  en:['The Festival','Three days of mud, lots of noise, and one unforgettable set.',[['🎸 Headliner','The highlight of the sprint.'],['🥾 Mud','Where did we get stuck?'],['🚽 Toilet queue','What were we waiting on?'],['📣 Line-up','What do we book for next time?']],'The queue column is gold for dependencies. Note who or what we were waiting on each time.']}
+];
+const O = [
+ {z:1,nl:'Sprint in één emoji. Iedereen toont tegelijk op "3".',en:'The sprint in one emoji. Everyone reveals at "3".'},
+ {z:1,nl:'Geef de sprint een cijfer op 10 én een filmtitel.',en:'Give the sprint a score out of 10 and a movie title.'},
+ {z:1,nl:'Welk dier was deze sprint? Eén zin uitleg.',en:'Which animal was this sprint? One sentence why.'},
+ {z:1,nl:'Eén woord dat de sprint samenvat. Herhalingen verboden.',en:'One word that sums up the sprint. No repeats allowed.'},
+ {z:2,nl:'Welk snoepje was deze sprint? Zure mat, drop, of een vergeten paaseitje?',en:'Which sweet was this sprint? Sour strip, liquorice, or a forgotten Easter egg?'},
+ {z:2,nl:'Schrijf een online review van de sprint, met sterren en één zin.',en:'Write an online review of the sprint: stars plus one sentence.'},
+ {z:2,nl:'Je vaste frietkotbestelling, en hoe die je sprint beschrijft.',en:'Your usual takeaway order, and how it describes your sprint.'},
+ {z:2,nl:'Teken de sprint in 30 seconden met je niet-dominante hand.',en:'Draw the sprint in 30 seconds with your non-dominant hand.'},
+ {z:3,nl:'Breng je sprint als sportcommentator in de laatste kilometer.',en:'Narrate your sprint like a sports commentator in the final kilometre.'},
+ {z:3,nl:'Welk geluid maakte de sprint? Iedereen doet het voor. Ja, echt.',en:'What sound did the sprint make? Everyone performs it. Yes, really.'},
+ {z:3,nl:'Je huisdier volgde je sprint. Wat is zijn oordeel?',en:'Your pet watched your sprint. What\'s its verdict?'},
+ {z:3,nl:'Verkoop de sprint in 20 seconden als telewinkelpresentator.',en:'Sell the sprint in 20 seconds like a teleshopping host.'}
+];
+const T = [
+ {z:1,nl:'Stille start: de eerste 5 minuten van het schrijven wordt er niets gezegd.',en:'Silent start: nobody speaks during the first 5 minutes of writing.'},
+ {z:1,nl:'De stilste persoon kiest welk onderwerp eerst besproken wordt.',en:'The quietest person picks which topic gets discussed first.'},
+ {z:1,nl:'Max. 3 actiepunten. Wie een vierde voorstelt, moet er eentje schrappen.',en:'Max. 3 action items. Propose a fourth and you must cut one.'},
+ {z:2,nl:'Elke actie wordt een krantenkop van max. 8 woorden.',en:'Every action becomes a newspaper headline of max. 8 words.'},
+ {z:2,nl:'Wie "eigenlijk" zegt, doet één squat.',en:'Whoever says "actually" does one squat.'},
+ {z:2,nl:'Verboden woorden: "ticket", "deadline" en "even snel".',en:'Banned words: "ticket", "deadline" and "quickly".'},
+ {z:2,nl:'Voor je mag klagen, geef je eerst een compliment aan iemand in de kamer.',en:'Before you complain, compliment someone in the room.'},
+ {z:2,nl:'Rollenwissel: iemand anders dan de vaste facilitator modereert.',en:'Role swap: someone other than the usual facilitator runs the retro.'},
+ {z:3,nl:'Elke klacht begint met "Lief dagboek, …".',en:'Every complaint starts with "Dear diary, …".'},
+ {z:3,nl:'Iedereen spreekt over zichzelf in de derde persoon.',en:'Everyone refers to themselves in the third person.'},
+ {z:3,nl:'Lees je post-it voor in een dialect dat niet het jouwe is.',en:'Read your sticky aloud in an accent that isn\'t yours.'},
+ {z:3,nl:'Een discussie duurt zo lang als een liedje. Muziek stopt = discussie stopt.',en:'A discussion lasts one song. Music stops = discussion stops.'},
+ {z:3,nl:'Gelijkstand bij stemmen? Blad-steen-schaar, best of three.',en:'Tied vote? Rock-paper-scissors, best of three.'}
+];
+const A = [
+ {z:1,nl:'ROTI: hoeveel was deze retro je tijd waard? 1 tot 5 vingers, tegelijk.',en:'ROTI: how much was this retro worth your time? 1 to 5 fingers, all at once.'},
+ {z:1,nl:'Eén woord bij het buitengaan.',en:'One word on the way out.'},
+ {z:1,nl:'Fist of five: hoe zeker ben je dat de acties echt gebeuren?',en:'Fist of five: how sure are you the actions will actually happen?'},
+ {z:1,nl:'Shout-out-rondje: bedank één persoon voor iets specifieks.',en:'Shout-out round: thank one person for something specific.'},
+ {z:2,nl:'Actieveiling: iedereen heeft 3 denkbeeldige munten om op acties te bieden.',en:'Action auction: everyone gets 3 imaginary coins to bid on actions.'},
+ {z:2,nl:'Sprinthoroscoop: voorspel in één zin hoe de volgende sprint verloopt.',en:'Sprint horoscope: predict the next sprint in one sentence.'},
+ {z:2,nl:'Schrijf een postkaart aan het team van over 3 sprints.',en:'Write a postcard to the team three sprints from now.'},
+ {z:3,nl:'Iedereen kiest een outro-liedje voor de sprint. Alleen de titel. (Oké, een beetje zingen mag.)',en:'Everyone picks an outro song for the sprint. Title only. (Fine, a little singing is allowed.)'},
+ {z:3,nl:'Elke actie-eigenaar zegt plechtig "Ik beloof…", hand op het hart.',en:'Every action owner solemnly says "I promise…", hand on heart.'},
+ {z:3,nl:'Groepsfoto in een pose die past bij het format van vandaag.',en:'Group photo in a pose that fits today\'s format.'}
+];
+const POOLS = {f:F,o:O,t:T,a:A};
+const DURS = [30,45,60,90];
+
+let lang = 'nl';
+if(!/^nl/i.test(navigator.language||'nl')) lang='en';
+let st = {f:0,o:0,t:0,a:0,d:60,z:2};
+const locks = {f:false,o:false,t:false,a:false};
+const $ = id => document.getElementById(id);
+const u = () => UI[lang];
+const fm = i => { const x=F[i][lang]; return {e:F[i].e,n:x[0],p:x[1],c:x[2],t:x[3]}; };
+
+function allowed(k){ return POOLS[k].map((x,i)=>i).filter(i=>POOLS[k][i].z<=st.z); }
+function pick(k, avoid){
+  let ids = allowed(k);
+  if (ids.length>1 && avoid!=null) ids = ids.filter(i=>i!==avoid);
+  return ids[Math.floor(Math.random()*ids.length)];
+}
+function timing(d){
+  const o=d<=30?5:d<=45?6:d<=60?8:10, a=5, act=d<=30?5:d<=45?7:d<=60?10:15;
+  const rest=d-o-a-act, w=Math.round(rest*0.38);
+  return [o,w,rest-w,act,a];
+}
+function agendaItems(){
+  const f=fm(st.f), m=timing(st.d), L=u();
+  const d=[O[st.o][lang], L.agW(f.n), L.agB, L.agA, A[st.a][lang]];
+  return m.map((mm,i)=>({m:mm,n:L.ag[i],d:d[i]}));
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function hashCode(){ return 'r-f'+st.f+'-o'+st.o+'-t'+st.t+'-a'+st.a+'-d'+st.d+'-z'+st.z+'-'+lang; }
+
+function renderStatic(){
+  const L=u();
+  document.documentElement.lang=lang;
+  document.querySelectorAll('[data-i]').forEach(el=>el.textContent=L[el.dataset.i]);
+  document.querySelectorAll('[data-lang]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===lang));
+  $('durChips').innerHTML=DURS.map(d=>'<button class="chip" data-v="'+d+'">'+d+' '+L.min+'</button>').join('');
+  $('zotChips').innerHTML=L.lvl.map((x,i)=>'<button class="chip" data-v="'+(i+1)+'">'+x+'</button>').join('');
+  $('tNext').title=lang==='nl'?'Volgende blok':'Next block'; $('tStop').title=lang==='nl'?'Stop':'Stop';
+  count();
+}
+function render(){
+  const f=fm(st.f), L=u();
+  $('fEmoji').textContent=f.e; $('fName').textContent=f.n; $('fPitch').textContent=f.p;
+  $('fCols').innerHTML=f.c.map(c=>'<div class="col"><h3>'+esc(c[0])+'</h3><p>'+esc(c[1])+'</p></div>').join('');
+  $('fTip').innerHTML='<b>'+L.tipLbl+'</b> '+esc(f.t);
+  $('oText').textContent=O[st.o][lang]; $('tText').textContent=T[st.t][lang]; $('aText').textContent=A[st.a][lang];
+  $('agenda').innerHTML=agendaItems().map((it,i)=>'<li><div class="min">'+it.m+'<small>'+L.min+'</small></div><div><b>'+(i+1)+'. '+esc(it.n)+'</b><span class="d">'+esc(it.d)+'</span></div><button class="play" data-p="'+i+'" aria-label="'+esc(L.startTimer+it.n)+'">▶</button></li>').join('');
+  $('agTotal').textContent='· '+st.d+' '+L.minutes;
+  document.querySelectorAll('#durChips .chip').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===st.d));
+  document.querySelectorAll('#zotChips .chip').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===st.z));
+  document.querySelectorAll('[data-lock]').forEach(b=>{
+    const k=b.dataset.lock, on=locks[k]; b.setAttribute('aria-pressed',on);
+    b.textContent = k==='f' ? (on?L.held:L.hold) : (on?'🔒':'🔓');
+    b.title = on?L.unlockTitle:L.lockTitle;
+  });
+  document.querySelector('[data-roll="f"]').textContent=L.other;
+  const code=hashCode();
+  $('code').textContent=L.code+': #'+code;
+  if (location.hash.slice(1)!==code){ try{ history.replaceState(null,'','#'+code); }catch(e){ location.hash=code; } }
+  if (tm.i>=0) $('tName').textContent=agendaItems()[tm.i].n;
+}
+function count(){
+  const n=['f','o','t','a'].reduce((p,k)=>p*allowed(k).length,1);
+  $('count').textContent=u().combos(n.toLocaleString(lang==='nl'?'nl-BE':'en-GB'));
+}
+function setLang(l){ lang=l; renderStatic(); render(); }
+
+let spinning=false;
+function spin(keys){
+  if (spinning) return;
+  keys = keys || ['f','o','t','a'].filter(k=>!locks[k]);
+  if (!keys.length){ toast(u().allLocked); return; }
+  const final={}; keys.forEach(k=>final[k]=pick(k, st[k]));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches){ Object.assign(st,final); render(); return; }
+  spinning=true; document.body.classList.add('shuffling');
+  let n=0; const iv=setInterval(()=>{
+    keys.forEach(k=>st[k]=pick(k)); render(); n++;
+    if(n>=9){ clearInterval(iv); Object.assign(st,final); render(); document.body.classList.remove('shuffling'); spinning=false; }
+  },65);
+}
+function normalize(){ ['f','o','t','a'].forEach(k=>{ if(POOLS[k][st[k]].z>st.z && !locks[k]) st[k]=pick(k); }); }
+
+function asText(){
+  const f=fm(st.f), L=u();
+  let s=L.retroLbl+': '+f.e+' '+f.n+' ('+st.d+' '+L.min+')\n'+f.p+'\n\n⚡ '+L.ruleLbl+': '+T[st.t][lang]+'\n\n';
+  agendaItems().forEach((it,i)=>{
+    s+=(i+1)+'. '+it.n+' ('+it.m+' '+L.min+'): '+it.d+'\n';
+    if(i===1) f.c.forEach(c=>s+='   • '+c[0]+' — '+c[1]+'\n');
+  });
+  return s+'\n'+L.tipLbl+' '+f.t+'\n';
+}
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),1600); }
+
+/* ---------- Timer ---------- */
+const tm={i:-1,left:0,run:false,iv:null};
+function fmt(s){const m=Math.floor(Math.abs(s)/60), x=Math.abs(s)%60; return (s<0?'-':'')+String(m).padStart(2,'0')+':'+String(x).padStart(2,'0');}
+function startBlock(i){
+  const items=agendaItems(); if(i>=items.length){ stopTimer(); toast(u().done); return; }
+  tm.i=i; tm.left=items[i].m*60; tm.run=true;
+  $('tName').textContent=items[i].n; $('tStep').textContent=u().block(i+1,items.length);
+  $('timer').classList.add('on'); $('tPause').textContent='⏸';
+  clearInterval(tm.iv); tm.iv=setInterval(()=>{ if(tm.run){ tm.left--; paint(); } },1000); paint();
+}
+function paint(){ $('tTime').textContent=fmt(tm.left); $('timer').classList.toggle('done', tm.left<=0); }
+function stopTimer(){ clearInterval(tm.iv); tm.run=false; tm.i=-1; $('timer').classList.remove('on','done'); }
+
+/* ---------- Events ---------- */
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-lang]'); if(g){ setLang(g.dataset.lang); return; }
+  const dc=e.target.closest('#durChips .chip'); if(dc){ st.d=+dc.dataset.v; render(); return; }
+  const zc=e.target.closest('#zotChips .chip'); if(zc){ st.z=+zc.dataset.v; normalize(); count(); render(); return; }
+  const l=e.target.closest('[data-lock]'); if(l){ locks[l.dataset.lock]=!locks[l.dataset.lock]; render(); return; }
+  const r=e.target.closest('[data-roll]'); if(r){ spin([r.dataset.roll]); return; }
+  const p=e.target.closest('.play'); if(p){ startBlock(+p.dataset.p); }
+});
+$('spin').addEventListener('click',()=>spin());
+$('startAll').addEventListener('click',()=>startBlock(0));
+$('tPause').addEventListener('click',()=>{ tm.run=!tm.run; $('tPause').textContent=tm.run?'⏸':'▶'; });
+$('tNext').addEventListener('click',()=>startBlock(tm.i+1));
+$('tStop').addEventListener('click',stopTimer);
+$('copy').addEventListener('click',async()=>{
+  const txt=asText();
+  try{ await navigator.clipboard.writeText(txt); toast(u().copied); }
+  catch(e){ $('mText').value=txt; $('modal').classList.add('on'); $('mText').focus(); $('mText').select(); }
+});
+$('mClose').addEventListener('click',()=>$('modal').classList.remove('on'));
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') $('modal').classList.remove('on'); });
+
+function fromHash(){
+  const m=location.hash.slice(1).match(/^r-f(\d+)-o(\d+)-t(\d+)-a(\d+)-d(\d+)-z([123])(?:-(nl|en))?$/);
+  if(!m) return false;
+  const v=m.slice(1,7).map(Number);
+  if(v[0]>=F.length||v[1]>=O.length||v[2]>=T.length||v[3]>=A.length||!DURS.includes(v[4])) return false;
+  st={f:v[0],o:v[1],t:v[2],a:v[3],d:v[4],z:v[5]}; if(m[7]) lang=m[7]; return true;
+}
+window.addEventListener('hashchange',()=>{ if(location.hash.slice(1)!==hashCode() && fromHash()){ renderStatic(); render(); } });
+if(!fromHash()){ st.f=pick('f'); st.o=pick('o'); st.t=pick('t'); st.a=pick('a'); }
+renderStatic(); render();
+</script>
+</body>
+</html>
